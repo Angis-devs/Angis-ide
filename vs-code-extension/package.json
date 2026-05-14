@@ -1,0 +1,40 @@
+{
+  "name": "angis",
+  "displayName": "Angis Language",
+  "description": "Angis descriptive programming language support",
+  "version": "0.1.0",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Programming Languages"],
+  "activationEvents": [
+    "onLanguage:angis"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [{
+      "id": "angis",
+      "aliases": ["Angis", "angis"],
+      "extensions": [".ang"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "angis",
+      "scopeName": "source.angis",
+      "path": "./syntaxes/angis.tmLanguage.json"
+    }],
+    "commands": [{
+      "command": "angis.run",
+      "title": "Angis: Run this file"
+    }],
+    "menus": {
+      "editor/title/run": [{
+        "command": "angis.run",
+        "group": "navigation",
+        "when": "resourceLangId == angis"
+      }],
+      "commandPalette": [{
+        "command": "angis.run",
+        "when": "resourceLangId == angis"
+      }]
+    }
+  }
+}

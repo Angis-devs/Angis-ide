@@ -1,0 +1,19 @@
+app "ExampleGame"
+  model Player
+    name: text
+    health: number
+
+  game "FlopyBeard"
+    world type infinite
+    world biome forest, desert, plains
+    block Grass
+      color #4CAF50
+    block Dirt
+      color #795548
+    player speed 10
+    player jump 3
+
+  page "Home" [/]
+    heading "Flopy Beard Game"
+    text "Welcome to Flopy Beard!"
+    button "Start Game" -> /game

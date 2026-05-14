@@ -1,0 +1,19 @@
+app "Blog"
+  model Post
+    title: text
+    content: text
+    author: text
+
+  page "Home" [/]
+    heading "My Blog"
+    text "Welcome to my blog"
+    button "View Posts" -> /posts
+
+  page "Posts" [/posts]
+    list Post
+    button "New Post" -> /posts/new
+
+  page "New Post" [/posts/new]
+    form Post
+    button "Publish" -> save
+    button "Cancel" -> /

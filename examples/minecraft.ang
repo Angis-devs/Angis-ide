@@ -1,0 +1,51 @@
+game "Minecraft"
+  world type infinite
+  world biome forest, plains, desert, taiga
+
+  block Grass
+    color #4CAF50
+    top #8BC34A
+    drops Dirt
+
+  block Dirt
+    color #795548
+
+  block Stone
+    color #9E9E9E
+    drops Cobblestone
+
+  block Wood
+    color #5D4037
+
+  block Planks
+    color #8D6E63
+
+  block Leaves
+    color #388E3C
+
+  block Sand
+    color #FDD835
+
+  block Snow
+    color #FAFAFA
+
+  block Bedrock
+    color #212121
+
+  block Brick
+    color #C62828
+
+  block Gold
+    color #FFD700
+
+  block Diamond
+    color #00BCD4
+
+  block Water
+    color #2196F3
+
+  block Obsidian
+    color #1A1A2E
+
+  player speed 10
+  player jump 3

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vscode-TextMate/main/syntaxes/JSON-schema.json",
+  "name": "Angis",
+  "scopeName": "source.angis",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#keywords" },
+    { "include": "#strings" },
+    { "include": "#types" },
+    { "include": "#routes" },
+    { "include": "#colors" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [{
+        "match": "--.*$",
+        "name": "comment.line.double-dash.angis"
+      }]
+    },
+    "keywords": {
+      "patterns": [{
+        "match": "\\b(app|game|model|page|block|world|player|heading|text|list|form|button|speed|jump|type|seed|biome|color|top|drops)\\b",
+        "name": "keyword.control.angis"
+      }]
+    },
+    "strings": {
+      "patterns": [{
+        "begin": "\"",
+        "end": "\"",
+        "name": "string.quoted.double.angis"
+      }]
+    },
+    "types": {
+      "patterns": [{
+        "match": "\\b(text|number|bool|list)\\b",
+        "name": "storage.type.angis"
+      }]
+    },
+    "colors": {
+      "patterns": [{
+        "match": "#[0-9A-Fa-f]{6}",
+        "name": "constant.numeric.angis"
+      }]
+    },
+    "routes": {
+      "patterns": [{
+        "match": "\\[/[^\\]]*\\]",
+        "name": "entity.name.function.angis"
+      }]
+    }
+  }
+}

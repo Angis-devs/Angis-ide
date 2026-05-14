@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Angis file",
+      "type": "shell",
+      "command": "python3",
+      "args": [
+        "-m", "angis", "${file}", "/tmp/angis_output.py",
+        "&&", "python3", "/tmp/angis_output.py"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "clear": true,
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

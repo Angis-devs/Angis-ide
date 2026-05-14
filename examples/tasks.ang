@@ -1,0 +1,19 @@
+app "Task Manager"
+  model Task
+    title: text
+    done: bool
+
+  page "Home" [/]
+    heading "Task Manager"
+    text "Your simple task management app"
+    button "View Tasks" -> /tasks
+    button "New Task" -> /tasks/new
+
+  page "Tasks" [/tasks]
+    list Task
+    button "New Task" -> /tasks/new
+
+  page "New Task" [/tasks/new]
+    form Task
+    button "Save" -> save
+    button "Cancel" -> /tasks
