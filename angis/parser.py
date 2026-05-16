@@ -248,9 +248,21 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
     inline_phrase = _parse_inline_phrase_definition(normalized, line, command_templates)
     if inline_phrase is not None:
         return inline_phrase
+    bare_return_match = re.fullmatch(r"return\.?\s*", normalized, re.I)
+    if bare_return_match:
+        return ReturnValue(value=None, source=line.text, confidence=0.99)
     return_match = re.fullmatch(r"return\s*,?\s*(?P<value>.+)", normalized, re.I)
     if return_match:
-        return ReturnValue(value=parse_text_value(return_match.group("value")), source=line.text, confidence=0.99)
+        raw = return_match.group("value")
+        from .intents import _split_items, parse_text_value
+        parts = _split_items(raw)
+        if len(parts) > 1:
+            return ReturnValue(
+                values=[parse_text_value(p) for p in parts],
+                source=line.text,
+                confidence=0.99,
+            )
+        return ReturnValue(value=parse_text_value(raw), source=line.text, confidence=0.99)
     break_match = re.fullmatch(r"break\.?", normalized, re.I)
     if break_match:
         return Break(source=line.text, confidence=0.99)
@@ -295,31 +307,37 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
     if command_call is not None:
         return command_call
     method_call_match = re.fullmatch(
-        r"(?:call|run)\s*,?\s*(?P<object>[A-Za-z_][A-Za-z0-9_]*)\.(?P<method>[A-Za-z_][A-Za-z0-9_]*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*))?",
+        r"(?:call|run)\s*,?\s*(?P<object>[A-Za-z_][A-Za-z0-9_]*)\.(?P<method>[A-Za-z_][A-Za-z0-9_.]*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*))?",
         normalized,
         re.I,
     )
     if method_call_match:
         args = _parse_call_args(method_call_match.group("args") or "")
+        result_raw = (method_call_match.group("result") or "").strip()
+        result_names: list[str] = [r.strip() for r in result_raw.split(",")] if result_raw else []
         return ObjectMethodCall(
             object_name=method_call_match.group("object"),
             method_name=method_call_match.group("method"),
             args=args,
-            result_name=method_call_match.group("result") or "",
+            result_name=result_names[0] if result_names else "",
+            result_names=result_names if len(result_names) > 1 else None,
             source=line.text,
             confidence=0.99,
         )
     call_match = re.fullmatch(
-        r"(?:call|run)\s*,?\s*(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*))?",
+        r"(?:call|run)\s*,?\s*(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*))?",
         normalized,
         re.I,
     )
     if call_match:
         args = _parse_call_args(call_match.group("args") or "")
+        result_raw = (call_match.group("result") or "").strip()
+        result_names = [r.strip() for r in result_raw.split(",")] if result_raw else []
         return FunctionCall(
             name=call_match.group("name"),
             args=args,
-            result_name=call_match.group("result") or "",
+            result_name=result_names[0] if result_names else "",
+            result_names=result_names if len(result_names) > 1 else None,
             source=line.text,
             confidence=0.99,
         )

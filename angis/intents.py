@@ -148,7 +148,7 @@ def parse_atom(text: str) -> Expression:
     if re.fullmatch(r"[+-]?\d+\.\d+", value):
         return float(value)
     length_match = re.fullmatch(
-        r"(?:length|count|size)\s+of\s+(?P<value>.+)|number\s+of\s+(?:items|things|entries|letters)\s+in\s+(?P<items>.+)",
+        r"(?:len|length|count|size)\s+of\s+(?P<value>.+)|number\s+of\s+(?:items|things|entries|letters)\s+in\s+(?P<items>.+)",
         value,
         re.I,
     )
@@ -225,8 +225,19 @@ def parse_output_value(text: str, source: str) -> Expression:
     if source_lower.startswith(("say ", "print ", "display ")):
         if _is_quoted(value) or re.fullmatch(r"[+-]?\d+(?:\.\d+)?", value):
             return parse_text_value(value)
+        if re.search(r'[+\-*/%]', value) or re.search(r'(?:plus|minus|times|divided|over|mod)', value, re.I):
+            try:
+                return parse_expression(value)
+            except AngisSyntaxError:
+                pass
         return value
-    return parse_text_value(value)
+    result = parse_text_value(value)
+    if isinstance(result, str) and re.search(r'[+\-*/%]', result):
+        try:
+            return parse_expression(value)
+        except AngisSyntaxError:
+            pass
+    return result
 
 
 def _looks_like_expression(value: str) -> bool:

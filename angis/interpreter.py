@@ -195,6 +195,35 @@ class Interpreter:
     _future_counter: int = 0
     python_modules: dict[str, object] = field(default_factory=dict)
     async_functions: dict[str, AsyncFunctionDef] = field(default_factory=dict)
+    builtins: dict[str, Callable[..., object]] = field(default_factory=lambda: {
+        "len": len,
+        "str": str,
+        "int": int,
+        "float": float,
+        "bool": bool,
+        "list": list,
+        "dict": dict,
+        "type": type,
+        "abs": abs,
+        "max": max,
+        "min": min,
+        "sum": sum,
+        "pow": pow,
+        "round": round,
+        "repr": repr,
+        "hex": hex,
+        "oct": oct,
+        "bin": bin,
+        "ord": ord,
+        "chr": chr,
+        "sorted": sorted,
+        "reversed": reversed,
+        "callable": callable,
+        "hasattr": hasattr,
+        "getattr": getattr,
+        "setattr": setattr,
+        "isinstance": isinstance,
+    })
     _async_loop: object = None
     _tk_root: object = None
     _tk_widgets: dict[str, object] = field(default_factory=dict)
@@ -323,14 +352,16 @@ class Interpreter:
             resource = self.evaluate(instruction.resource)
             if isinstance(resource, str):
                 res_text: str = resource
-                file_match = re.fullmatch(r'file\s+"(.+)"', res_text.strip())
+                file_match = re.fullmatch(r'file\s+"(.+?)"(?:\s+with\s+"(.+)")?', res_text.strip())
                 if file_match:
                     res_path = file_match.group(1)
+                    res_mode = file_match.group(2) or "r"
                 else:
                     res_path = res_text
+                    res_mode = "r"
                 res_file = None
                 try:
-                    res_file = builtins.open(res_path, "r")
+                    res_file = builtins.open(res_path, res_mode)
                     if instruction.variable_name:
                         self.variables[instruction.variable_name] = res_file
                     self._run_nested(instruction.body, captured)
@@ -611,23 +642,36 @@ class Interpreter:
                 if mod is None and obj_name in self.variables:
                     mod = self.variables[obj_name]
                 if mod is not None:
-                    py_method = getattr(mod, instruction.method_name, None)
-                    if py_method is not None:
+                    parts = instruction.method_name.split(".")
+                    current = mod
+                    for part in parts:
+                        current = getattr(current, part, None)
+                        if current is None:
+                            break
+                    if current is not None and callable(current):
+                        args = [self.evaluate(a) for a in (instruction.args or [])]
+                        value = current(*args)
+                        self._assign_results(instruction, value)
+                        return
+                    if len(parts) == 1 and hasattr(mod, instruction.method_name):
+                        py_method = getattr(mod, instruction.method_name)
                         args = [self.evaluate(a) for a in (instruction.args or [])]
                         value = py_method(*args)
-                        if instruction.result_name:
-                            self.variables[instruction.result_name] = value
+                        self._assign_results(instruction, value)
                         return
                 raise AngisRuntimeError(f"Method {instruction.object_name}.{instruction.method_name} has not been defined.")
             value = self._call_object_method(method, instruction.object_name, instruction.args or [], captured)
-            if instruction.result_name:
-                self.variables[instruction.result_name] = value
+            self._assign_results(instruction, value)
             return
         if isinstance(instruction, FunctionCall):
             if instruction.name in self.variables and isinstance(self.variables[instruction.name], Lambda):
                 value = self._call_lambda(self.variables[instruction.name], instruction.args or [], captured)
-                if instruction.result_name:
-                    self.variables[instruction.result_name] = value
+                self._assign_results(instruction, value)
+                return
+            if instruction.name in self.builtins:
+                args = [self.evaluate(a) for a in (instruction.args or [])]
+                value = self.builtins[instruction.name](*args)
+                self._assign_results(instruction, value)
                 return
             if instruction.name in self.async_functions:
                 async_fn = self.async_functions[instruction.name]
@@ -637,16 +681,18 @@ class Interpreter:
                     self._async_loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(self._async_loop)
                 value = self._async_loop.run_until_complete(_run_async())
-                if instruction.result_name:
-                    self.variables[instruction.result_name] = value
+                self._assign_results(instruction, value)
                 return
             if instruction.name not in self.functions:
                 raise AngisRuntimeError(f"Function {instruction.name!r} has not been defined.")
             value = self._call_function(self.functions[instruction.name], instruction.args or [], captured)
-            if instruction.result_name:
-                self.variables[instruction.result_name] = value
+            self._assign_results(instruction, value)
             return
         if isinstance(instruction, ReturnValue):
+            if instruction.values:
+                raise _FunctionReturn(tuple(self.evaluate(v) for v in instruction.values))
+            if instruction.value is None:
+                raise _FunctionReturn(None)
             raise _FunctionReturn(self.evaluate(instruction.value))
         if isinstance(instruction, ImportModule):
             self._import_module(instruction.name)
@@ -1411,6 +1457,8 @@ class Interpreter:
                     if instr.send_var:
                         self.variables[instr.send_var] = sent if sent is not None else ""
                 elif isinstance(instr, ReturnValue):
+                    if instr.values:
+                        raise _FunctionReturn(tuple(self.evaluate(v) for v in instr.values))
                     val = self.evaluate(instr.value) if instr.value is not None else None
                     raise _FunctionReturn(val)
                 elif isinstance(instr, FunctionDef):
@@ -1566,6 +1614,8 @@ class Interpreter:
                         if instr.result_name:
                             self.variables[instr.result_name] = result
                     elif isinstance(instr, ReturnValue):
+                        if instr.values:
+                            raise _FunctionReturn(tuple(self.evaluate(v) for v in instr.values))
                         val = self.evaluate(instr.value) if instr.value is not None else None
                         if function.return_type:
                             self._check_type(val, function.return_type, "return")
@@ -1710,6 +1760,16 @@ class Interpreter:
             kind=_file_kind(resolved),
             preview=_file_preview(resolved),
         )
+
+    def _assign_results(self, instruction, value: object) -> None:
+        result_names: list[str] | None = getattr(instruction, "result_names", None)
+        result_name: str = getattr(instruction, "result_name", "")
+        if result_names and isinstance(value, tuple):
+            for i, name in enumerate(result_names):
+                if i < len(value):
+                    self.variables[name] = value[i]
+        elif result_name:
+            self.variables[result_name] = value
 
     def _format_file_info(self, info: FileInfo) -> str:
         return f"Attached file: {info.name} ({info.size} bytes) at {info.path}"

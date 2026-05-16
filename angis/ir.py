@@ -182,6 +182,7 @@ class FunctionCall(Instruction):
     name: str
     args: list[Expression] | None = None
     result_name: str = ""
+    result_names: list[str] | None = None
 
     def __str__(self) -> str:
         return f"CALL({self.name})"
@@ -206,6 +207,7 @@ class ObjectMethodCall(Instruction):
     method_name: str
     args: list[Expression] | None = None
     result_name: str = ""
+    result_names: list[str] | None = None
 
     def __str__(self) -> str:
         return f"CALL_METHOD({self.object_name}.{self.method_name})"
@@ -241,9 +243,12 @@ class Await(Instruction):
 
 @dataclass(frozen=True)
 class ReturnValue(Instruction):
-    value: Expression
+    value: Expression | None = None
+    values: list[Expression] | None = None
 
     def __str__(self) -> str:
+        if self.values:
+            return f"RETURN({', '.join(format_expr(v) for v in self.values)})"
         return f"RETURN({format_expr(self.value)})"
 
 
