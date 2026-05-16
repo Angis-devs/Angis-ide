@@ -1,0 +1,6 @@
+# Load .angis phrase files from nested folders
+
+use phrase pack phrase_tree
+
+Start game.
+Note recursive phrase pack works.

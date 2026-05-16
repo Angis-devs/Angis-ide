@@ -1,0 +1,8 @@
+# Click or press Space to move the bird up.
+# The bird falls down by gravity and must avoid obstacles.
+
+Bird on screen.
+When clicked, bird goes up.
+Bird falls down.
+Add obstacles.
+If bird hits obstacle, end game.

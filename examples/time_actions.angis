@@ -1,0 +1,15 @@
+# Natural time actions
+
+Get current time as nowText.
+Get timestamp as secondsNow.
+Get todays date as todayText.
+Add 3 days to today as dueDate.
+Subtract 2 days from today as pastDate.
+
+Show nowText.
+Show todayText.
+Show dueDate.
+Show pastDate.
+
+If secondsNow is greater than 0:
+    Say, timestamp works.

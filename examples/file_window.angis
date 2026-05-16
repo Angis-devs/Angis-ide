@@ -1,0 +1,6 @@
+# File attachment shown inside an app window.
+
+App, File Window.
+Text, The attached file should appear below.
+Set file attach to window at x 20 y 80 z 0 from file /Users/fellflow/Desktop/Angis/README.md.
+Button, Confirm File.

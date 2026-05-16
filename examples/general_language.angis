@@ -1,0 +1,16 @@
+# Angis general language example
+
+Set, score to 0.
+
+Repeat, 3 times:
+    Add, 1 to score.
+
+If, score is 3:
+    Say, score reached three.
+    Show, score.
+
+Define, greet:
+    Say, hello from a function.
+
+Call, greet.
+Call, greet.

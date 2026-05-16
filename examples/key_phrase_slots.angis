@@ -1,0 +1,16 @@
+# Key slots let phrases control object property names
+
+Blueprint Player with name: Ada, score: 0, health: 10.
+Create Player named hero with name: Grace.
+
+Define phrase set {field:key} of {target:name} to {value}:
+    Set, target[field] to value.
+
+Define phrase show {field:key} of {target:name}:
+    Show, target[field].
+
+Set score of hero to 9.
+Set health of hero to 12.
+
+Show score of hero.
+Show health of hero.

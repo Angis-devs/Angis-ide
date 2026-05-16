@@ -1,0 +1,82 @@
+App, Flappy Bird 3D.
+Scene, true 3D.
+Window size 800 by 600.
+camera at x 0 y 0 z -10.
+mode third person.
+
+Set score to 0.
+Set gravity to 2.
+Set flap to -18.
+Set bird_y to 150.
+Set velocity to 0.
+Set pipe_z to 15.
+Set pipe_speed to 0.4.
+Set game_over to false.
+Set started to false.
+
+Create sphere named bird at x 0 y 150 z 0.
+Set bird color to #ffcc00.
+Set bird size to 15.
+Attach file "examples/duck.gif" named duck.
+Set bird image to duck.
+
+Create box named upperPipe at x 0 y -60 z 15.
+Set upperPipe color to #22c55e.
+Set upperPipe scale_x to 2.
+Set upperPipe scale_y to 1.
+Set upperPipe scale_z to 0.5.
+
+Create box named lowerPipe at x 0 y 330 z 15.
+Set lowerPipe color to #22c55e.
+Set lowerPipe scale_x to 2.
+Set lowerPipe scale_y to 1.
+Set lowerPipe scale_z to 0.5.
+
+Create box named ground at x 0 y 570 z 0.
+Set ground color to #15803d.
+Set ground scale_x to 5.
+Set ground scale_y to 0.1.
+Set ground scale_z to 10.
+
+on click:
+    If game_over is true:
+        Set score to 0.
+        Set bird_y to 150.
+        Set velocity to 0.
+        Set pipe_z to 15.
+        Set bird y to bird_y.
+        Set upperPipe z to pipe_z.
+        Set lowerPipe z to pipe_z.
+        Set game_over to false.
+    If started is false:
+        Set started to true.
+    If started is true:
+        If game_over is false:
+            Set velocity to flap.
+
+every 30 ms:
+    If started is true:
+        If game_over is false:
+            Set velocity to velocity plus gravity.
+            Set bird_y to bird_y plus velocity.
+            Set bird y to bird_y.
+            Set pipe_z to pipe_z minus pipe_speed.
+            Set upperPipe z to pipe_z.
+            Set lowerPipe z to pipe_z.
+            If pipe_z is less than -2:
+                Set pipe_z to 15.
+                Add 1 to score.
+            If bird_y is greater than 550:
+                Set game_over to true.
+                Show text "Game Over!".
+            If bird_y is less than 10:
+                Set game_over to true.
+                Show text "Game Over!".
+            If pipe_z is less than 1:
+                If pipe_z is greater than -1:
+                    If bird_y is less than 70:
+                        Set game_over to true.
+                        Show text "Game Over!".
+                    If bird_y is greater than 230:
+                        Set game_over to true.
+                        Show text "Game Over!".

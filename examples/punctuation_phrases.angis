@@ -1,0 +1,13 @@
+# Custom phrases tolerate sentence punctuation
+
+Blueprint Player with name: Ada, score: 0.
+Create Player named hero with name: Grace.
+
+Define phrase give {amount:number} points to {target:name}:
+    Set, target.score to target.score + amount.
+    Return, target.score.
+
+Give, 3 points to hero! as score.
+
+Show, score.
+Show, hero.score.

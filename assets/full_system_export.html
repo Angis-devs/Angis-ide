@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" class="layout-free">
+<head>
+<meta charset="utf-8">
+<title>Full System Demo</title>
+<style>
+body{font-family:system-ui,sans-serif;margin:24px;background:#f8fafc;color:#111827}
+.canvas{position:relative;overflow:hidden;background:white;border:1px solid #cbd5e1}
+.object{position:absolute;display:flex;align-items:center;justify-content:center;color:white;font-weight:700}
+button{margin:6px;padding:8px 12px}
+
+</style>
+</head>
+<body>
+<!-- Angis imports: pygame, database, network, packaging, debug | backend: pygame -->
+<!-- Angis layout: {&#x27;kind&#x27;: &#x27;free&#x27;, &#x27;columns&#x27;: 1} | sound volume: 100 -->
+<h1>Full System Demo</h1>
+<p>This file includes another .angis file, uses SQLite, exports, packages, and can run with pygame if installed</p>
+<div class="canvas" style="width:800px;height:500px;">
+<div class="object" style="left:100px;top:220px;width:120px;height:80px;background:purple;border-radius:4px;">box</div>
+<div class="object" style="left:520px;top:210px;width:70px;height:70px;background:green;border-radius:50%;">target</div>
+</div>
+</body>
+</html>

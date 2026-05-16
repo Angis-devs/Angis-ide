@@ -1,0 +1,9 @@
+# Natural JSON actions
+
+Parse JSON {"score": 42, "name": "Ada"} as data.
+Turn data into JSON as packed.
+
+Show score of data.
+
+If packed contains score:
+    Say, json works.

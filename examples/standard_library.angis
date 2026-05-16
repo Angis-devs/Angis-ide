@@ -1,0 +1,36 @@
+# Angis standard library style
+
+import pygame
+import database
+import network
+import sound
+import debug
+import packaging
+
+Create dictionary named player with health: 100, name: Ada.
+Set player score to 0.
+
+App, Standard Library Demo.
+Scene, canvas.
+Window size 800 by 500.
+
+Text, Pygame-style canvas backend. Press D to move the box into the target.
+
+Create rectangle named box at x 100 y 220.
+Set box color to purple.
+Set box width to 120.
+Set box height to 80.
+
+Create circle named target at x 520 y 210.
+Set target color to green.
+Set target size to 70.
+
+When key d pressed:
+    Move box right by 12.
+
+When box touches target:
+    Show text The objects touched.
+    Play sound /Users/fellflow/Desktop/Angis/angis loading/loading-adieo.mp3.
+
+Debug all.
+Export app to file /Users/fellflow/Desktop/Angis/assets/standard_library_export.html.

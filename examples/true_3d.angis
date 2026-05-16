@@ -1,0 +1,21 @@
+# True 3D software-rendered scene
+
+import std
+
+App, True 3D Demo.
+Scene, true 3D.
+Window size 900 by 620.
+
+Text, This uses Angis built-in software 3D rendering.
+
+Create cube named core at x 0 y 0 z 0.
+Set core color to blue.
+Set core size to 160.
+
+Create cube named leftTower at x -180 y 20 z 80.
+Set leftTower color to purple.
+Set leftTower size to 90.
+
+Create cube named rightTower at x 180 y -20 z -40.
+Set rightTower color to green.
+Set rightTower size to 110.

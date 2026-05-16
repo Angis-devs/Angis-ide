@@ -1,0 +1,16 @@
+# Apex Legends style world app
+
+App, Apex Drop Zone.
+Scene, 3D world.
+Text, Choose your legend.
+Text, Drop into the arena.
+Text, Find weapons.
+Text, Use tactical abilities.
+Text, Stay inside the ring.
+
+Button, Pick Legend.
+Button, Launch Drop.
+Button, Ping Enemy.
+Button, Use Tactical.
+Button, Use Ultimate.
+Button, Champion Squad.

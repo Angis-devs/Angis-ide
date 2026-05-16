@@ -1,0 +1,13 @@
+# One-line phrases can run multiple actions
+
+Blueprint Player with name: Ada, score: 0.
+Create Player named hero with name: Grace.
+
+Define phrase boost {target:name} means Set, target.score to target.score + 1 and then Show, target.score.
+Define phrase reset {target:name} means Set, target.score to 0 then Show, target.score.
+Define phrase mark {target:name} means Set, target.score to 5; Show, target.score.
+
+Boost hero.
+Boost hero.
+Reset hero.
+Mark hero.

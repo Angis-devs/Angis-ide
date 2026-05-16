@@ -1,0 +1,60 @@
+# General Angis wording over safe local standard library actions
+
+Create list named names with Ada, Grace, Linus.
+Create dictionary named player with name: Ada, score: 42.
+
+When I say shout {message:text}, it means Set taughtLoud to text uppercase with text: message and then Show taughtLoud.
+Teach Angis count names to mean Count length of names as taughtCount and then Show taughtCount.
+When I say quiet {message:text}:
+    Set taughtQuiet to text lowercase with text: message.
+    Show taughtQuiet.
+
+Ask text to uppercase with text: hello from angis as loud.
+Ask text to starts with text: hello from angis, prefix: hello as starts.
+Tell math to clamp with value: 14, min: 1, max: 10 as clamped.
+Get math maximum with left: 2, right: 9 as biggest.
+Run list at with values: names, index: 1 as secondName.
+Run list slice with values: names, start: 0, end: 2 as firstTwo.
+Get map has with value: player, key: score as hasScore.
+Get path stem with path: /Users/fellflow/Desktop/Angis/examples/hello.angis as fileStem.
+Get uppercase of hello natural words as naturalLoud.
+Calculate square root of 81 as naturalRoot.
+Count length of names as naturalCount.
+Find file extension of /Users/fellflow/Desktop/Angis/examples/hello.angis as naturalExtension.
+Check if file exists at /Users/fellflow/Desktop/Angis/examples/hello.angis as naturalExists.
+Set assignedLoud to uppercase of hello assigned words.
+Make assignedRoot equal square root of 81.
+Let assignedCount = length of names.
+Set assignedExtension to file extension of /Users/fellflow/Desktop/Angis/examples/hello.angis.
+Set assignedExists to file exists at /Users/fellflow/Desktop/Angis/examples/hello.angis.
+Set bridgeLoud to text uppercase with text: hello bridge words.
+Make bridgeClamp equal math clamp with value: 14, min: 1, max: 10.
+Let bridgeSecond = list at with values: names, index: 1.
+Set bridgeHasScore to map has with value: player, key: score.
+
+Shout hello taught words.
+Count names.
+Quiet HELLO BLOCK WORDS.
+
+Show loud.
+Show starts.
+Show clamped.
+Show biggest.
+Show secondName.
+Show firstTwo.
+Show hasScore.
+Show fileStem.
+Show naturalLoud.
+Show naturalRoot.
+Show naturalCount.
+Show naturalExtension.
+Show naturalExists.
+Show assignedLoud.
+Show assignedRoot.
+Show assignedCount.
+Show assignedExtension.
+Show assignedExists.
+Show bridgeLoud.
+Show bridgeClamp.
+Show bridgeSecond.
+Show bridgeHasScore.

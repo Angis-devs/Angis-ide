@@ -1,0 +1,11 @@
+# Natural variable mutation
+
+Set score to 10.
+Take 2 from score.
+Decrease score by 1.
+Multiply score by 3.
+Double score.
+Divide score by 2.
+Cut score in half.
+
+Show score.

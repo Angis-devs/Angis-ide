@@ -1,0 +1,15 @@
+# Natural list transforms
+
+Set scores to [3, 1, 2, 1].
+
+Sort scores as sortedScores.
+Reverse scores as reversedScores.
+Unique scores as uniqueScores.
+Pick random item from scores as chosenScore.
+
+Show sortedScores.
+Show reversedScores.
+Show uniqueScores.
+
+If scores contains chosenScore:
+    Say, random choice works.

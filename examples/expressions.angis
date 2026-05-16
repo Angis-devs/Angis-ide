@@ -1,0 +1,15 @@
+# Angis expression demo
+
+Set, x to 5.
+Set, y to 3.
+Set, total to x * y + 10.
+
+Show, total.
+
+If, total is at least x + y:
+    Say, expression condition works.
+
+While, x + y is less than 12:
+    Add, 1 to x.
+
+Show, x.

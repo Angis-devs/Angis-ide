@@ -1,0 +1,10 @@
+# Angis while loop demo
+
+Set, score to 0.
+
+While, score is less than 5:
+    Add, 1 to score.
+    Show, score.
+
+If, score is at least 5:
+    Say, loop finished.

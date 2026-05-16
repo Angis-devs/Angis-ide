@@ -1,0 +1,13 @@
+# Angis else block demo
+
+Set, score to 2.
+
+If, score is at least 3:
+    Say, winner.
+Else:
+    Say, keep going.
+
+If, score is less than 3:
+    Say, low score.
+Otherwise:
+    Say, high score.

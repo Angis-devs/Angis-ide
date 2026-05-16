@@ -1,0 +1,13 @@
+# Angis direct data access demo
+
+Create dictionary named player with name: Ada, score: 42.
+Create list named inventory with wood, stone, iron.
+Use json parse with text: [{"name":"Ada"},{"name":"Grace"}] as rows.
+
+Show, player.name.
+Show, player.score.
+Show, inventory[0].
+Show, rows[1].name.
+
+For each, row in rows:
+    Show, row.name.

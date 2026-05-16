@@ -1,0 +1,71 @@
+App, Flappy Bird.
+Scene, 2D screen.
+Blue window.
+Window size 400 by 600.
+
+Set score to 0.
+Set gravity to 3.
+Set flap to -30.
+Set bird_y to 250.
+Set velocity to 0.
+Set pipe_x to 400.
+Set pipe_gap to 150.
+Set pipe_speed to 3.
+Set game_over to false.
+
+Create circle named bird at x 180 y 250.
+Set bird color to yellow.
+Set bird size to 20.
+
+Create rectangle named ground at x 0 y 580.
+Set ground color to green.
+Set ground width to 400.
+Set ground height to 20.
+
+Create rectangle named Top pipe at x 400 y 0 size 50 by 200.
+Set Top pipe color to darkgreen.
+
+Create rectangle named Bottom pipe at x 400 y 500 size 50 by 200.
+Set Bottom pipe color to darkgreen.
+
+Create text named scoreText at x 10 y 10 saying "Score: 0".
+Set scoreText font_size to 20.
+Set scoreText color to white.
+
+on click:
+    If game_over is true:
+        Set score to 0.
+        Set bird_y to 250.
+        Set velocity to 0.
+        Set pipe_x to 400.
+        Set bird y to bird_y.
+        Set Top pipe x to pipe_x.
+        Set Bottom pipe x to pipe_x.
+        Set scoreText text to "Score: 0".
+        Set game_over to false.
+    If game_over is false:
+        Set velocity to flap.
+
+every 30 ms:
+    If game_over is false:
+        Set velocity to velocity plus gravity.
+        Set bird_y to bird_y plus velocity.
+        Set bird y to bird_y.
+        Set pipe_x to pipe_x minus pipe_speed.
+        Set Top pipe x to pipe_x.
+        Set Bottom pipe x to pipe_x.
+        If pipe_x is less than -50:
+            Set pipe_x to 450.
+            Add 1 to score.
+            Set scoreText text to "Score: {score}".
+        If bird_y is greater than 560:
+            Set game_over to true.
+            Show text "Game Over!".
+
+when bird hits Top pipe:
+    Set game_over to true.
+    Show text "Game Over!".
+
+when bird hits Bottom pipe:
+    Set game_over to true.
+    Show text "Game Over!".

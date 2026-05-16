@@ -1,0 +1,12 @@
+# Angis function parameters demo
+
+Define, greet with name:
+    Show, name.
+
+Define, addPair with left and right:
+    Set, total to left + right.
+    Show, total.
+
+Call, greet with Ada.
+Call, greet with Grace.
+Call, addPair with 4, 6.

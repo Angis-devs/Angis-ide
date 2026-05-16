@@ -1,0 +1,11 @@
+# Use custom phrases from another Angis file
+
+use phrase library phrase_library.angis
+
+Blueprint Player with name: Ada, score: 0.
+Create Player named hero with name: Grace.
+
+Start game.
+Note hello from library.
+Set score of hero to 11.
+Show score of hero.

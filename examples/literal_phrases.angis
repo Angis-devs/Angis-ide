@@ -1,0 +1,10 @@
+# Literal phrases do not need slots
+
+Define phrase start game:
+    Say, started.
+
+Define phrase reset everything:
+    Say, reset.
+
+Start game.
+Reset, everything!

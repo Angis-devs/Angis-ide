@@ -1,0 +1,7 @@
+# One-line phrase definitions
+
+Define phrase start game means Say, started.
+Define phrase note {message:text} means Show, message.
+
+Start game.
+Note hello from one line.

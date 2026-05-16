@@ -1,0 +1,40 @@
+# Natural length and count expressions
+
+Set inventory to [wood, stone, iron].
+Set player to {name: Ada, score: 42}.
+Set title to Angis.
+
+Show length of inventory.
+Show count of player.
+Show number of letters in title.
+
+Set total to count of inventory plus 1.
+Show total.
+
+Show first item of inventory.
+Show second item of inventory.
+Show last item of inventory.
+Show first letter of title.
+Show last letter of title.
+Show first 2 items of inventory.
+Show items 1 through 2 of inventory.
+Show letters 0 to 3 of title.
+
+Set emptyList to [].
+Set emptyMap to {}.
+Set emptyText to "".
+
+If number of items in inventory is 3:
+    Say, count works.
+
+If inventory is not empty:
+    Say, inventory has items.
+
+If emptyList is empty:
+    Say, list empty.
+
+If emptyMap is empty:
+    Say, map empty.
+
+If emptyText is blank:
+    Say, text blank.

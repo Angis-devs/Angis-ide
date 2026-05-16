@@ -1,0 +1,11 @@
+# Angis for-each loop demo
+
+Create list named inventory with wood, stone, iron.
+
+For each, item in inventory:
+    Show, item.
+
+Use json parse with text: [{"name":"Ada"},{"name":"Grace"}] as rows.
+
+For each, row in rows:
+    Show, row.

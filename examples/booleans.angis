@@ -1,0 +1,17 @@
+# Boolean values
+
+Set, ready to true.
+Set, visible to off.
+Create dictionary named player with alive: yes, hidden: no.
+
+If ready is true:
+    Say, ready.
+
+If visible is false:
+    Say, hidden.
+
+If player.alive is yes and player.hidden is no:
+    Say, player active.
+
+Show, ready.
+Show, visible.

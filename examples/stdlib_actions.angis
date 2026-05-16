@@ -1,0 +1,28 @@
+# Angis safe standard-library actions
+
+Use math sqrt with value: 81 as root.
+Use math power with base: 2, exponent: 8 as power.
+Use random integer with min: 1, max: 6 as roll.
+Use time now as stamp.
+Use json parse with text: {"score": 42} as data.
+Use json stringify with value: data as packed.
+Use text uppercase with text: hello as loud.
+Use text split with text: red-blue-green, by: - as parts.
+Use text join with values: parts, by: / as joined.
+Use list length with values: parts as partCount.
+Use map keys with value: data as dataKeys.
+Use file info with path: /Users/fellflow/Desktop/Angis/examples/hello.angis as fileInfo.
+Use path extension with path: /Users/fellflow/Desktop/Angis/examples/hello.angis as extension.
+Use capabilities list as available.
+
+Show root.
+Show power.
+Show roll.
+Show stamp.
+Show packed.
+Show loud.
+Show joined.
+Show partCount.
+Show dataKeys.
+Show extension.
+Debug capabilities.

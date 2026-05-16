@@ -1,0 +1,25 @@
+# Angis UI, media, and package demo
+
+import ui
+import video
+import sound
+import packaging
+
+App, Studio.
+Scene, canvas.
+Window size 900 by 560.
+Layout, grid with 3 columns.
+
+Text, Angis can describe controls, media, sound, and packaging with wording-code.
+
+Create button named start at x 24 y 70 with text Start.
+Create input named nameBox at x 24 y 120.
+Set nameBox width to 240.
+Create slider named speed at x 24 y 170.
+Set speed width to 240.
+Create checkbox named musicOn at x 24 y 220.
+
+Set sound volume to 70.
+
+When button start clicked:
+    Show text Started from Angis wording-code.

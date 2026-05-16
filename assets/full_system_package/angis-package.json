@@ -1,0 +1,16 @@
+{
+  "title": "Full System Demo",
+  "scene": "canvas",
+  "imports": [
+    "pygame",
+    "database",
+    "network",
+    "packaging",
+    "debug"
+  ],
+  "backend": "pygame",
+  "layout": {
+    "kind": "free",
+    "columns": 1
+  }
+}

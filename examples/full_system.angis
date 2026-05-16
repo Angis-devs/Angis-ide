@@ -1,0 +1,35 @@
+# Broader Angis system example
+
+include shared.angis
+
+import pygame
+import database
+import network
+import packaging
+import debug
+
+Open database file /Users/fellflow/Desktop/Angis/assets/angis_demo.sqlite as db.
+Run SQL "CREATE TABLE IF NOT EXISTS scores (name TEXT, score INTEGER)" on db.
+Run SQL "DELETE FROM scores" on db.
+Run SQL "INSERT INTO scores VALUES ('Ada', 42)" on db.
+Run SQL "SELECT * FROM scores" on db as rows.
+
+App, Full System Demo.
+Scene, canvas.
+Window size 800 by 500.
+
+Text, This file includes another .angis file, uses SQLite, exports, packages, and can run with pygame if installed.
+
+Create rectangle named box at x 100 y 220.
+Set box color to purple.
+Set box width to 120.
+Set box height to 80.
+
+Create circle named target at x 520 y 210.
+Set target color to green.
+Set target size to 70.
+
+Breakpoint after setup.
+Debug all.
+Export app to file /Users/fellflow/Desktop/Angis/assets/full_system_export.html.
+Package app to folder /Users/fellflow/Desktop/Angis/assets/full_system_package.

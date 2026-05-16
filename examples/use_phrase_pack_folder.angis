@@ -1,0 +1,6 @@
+# Load every .angis phrase file in a folder
+
+use phrase pack phrases
+
+Start game.
+Note folder phrase pack works.

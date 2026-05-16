@@ -1,0 +1,23 @@
+# Teach Angis sentence shapes with slots
+
+Blueprint Player with name: Ada, score: 0.
+Create Player named hero with name: Grace.
+
+Define phrase give {amount} points to {target}:
+    Set, target.score to target.score + amount.
+    Return, target.score.
+
+Define phrase rename {target} to {newName}:
+    Set, target.name to newName.
+
+Define phrase show stats for {target}:
+    Show, target.name.
+    Show, target.score.
+
+Give 3 points to hero as firstScore.
+Give 7 points to hero as secondScore.
+Rename hero to Lovelace.
+Show stats for hero.
+
+Show, firstScore.
+Show, secondScore.

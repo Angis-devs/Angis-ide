@@ -1,0 +1,4 @@
+# Output examples
+say "hello"
+print "Angis is running"
+tell me "human-like phrases work"

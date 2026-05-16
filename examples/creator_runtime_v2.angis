@@ -1,0 +1,44 @@
+# Angis Creator Runtime v2 example
+
+App, Creator V2 World.
+Scene, 3D world.
+
+Create player named hero at x 0 y 0 z 0.
+Create player named enemy at x 2 y 0 z 2.
+Create image named city at x 0 y -40 z 4 from file /Users/fellflow/Desktop/Angis/assets/gta_style_city.png.
+Create button named start with text Start Mission.
+
+Set hero color to red.
+Set hero size to 22.
+
+Create list named inventory with key, map.
+Add shield to list inventory.
+
+When key w pressed:
+    Move hero forward by 1.
+
+When key s pressed:
+    Move hero backward by 1.
+
+When key a pressed:
+    Move hero left by 1.
+
+When key d pressed:
+    Move hero right by 1.
+
+When mouse clicked:
+    Play sound click.
+    Show text Mouse clicked.
+
+Every 500 milliseconds:
+    Animate enemy left by 1 every 500 milliseconds.
+
+When hero touches enemy:
+    Play sound hit.
+    Show text Collision detected.
+
+When button start clicked:
+    Show text Mission started.
+    Move hero forward by 2.
+
+Save state to file /Users/fellflow/Desktop/Angis/assets/creator_state.json.

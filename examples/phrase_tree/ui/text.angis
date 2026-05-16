@@ -1,0 +1,3 @@
+# Nested UI phrase pack
+
+Define phrase note {message:text} means Show, message.

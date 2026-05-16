@@ -1,0 +1,27 @@
+# Change real data objects with Angis wording
+
+Create dictionary named player with name: Ada, score: 42.
+Create list named inventory with wood, stone, iron.
+Use json parse with text: [{"name":"Ada"},{"name":"Grace"}] as rows.
+
+Set, player.score to 50.
+Set, inventory[1] to diamond.
+Set, rows[0].name to Lovelace.
+Put shield in inventory.
+Store potion inside inventory.
+Remove shield from inventory.
+Take potion out of inventory.
+Put key in inventory.
+Make player have health 99.
+Give player level 3.
+Set name of player to Grace.
+Remove field level from player.
+Get map has with value: player, key: level as hasLevel.
+
+Show, player.name.
+Show, player.score.
+Show, player.health.
+Show, hasLevel.
+Show, inventory[1].
+Show, inventory[3].
+Show, rows[0].name.

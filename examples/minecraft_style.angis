@@ -1,0 +1,267 @@
+App, Minecraft 2D.
+Scene, canvas.
+Window size 800 by 600.
+
+Set health to 10.
+Set wood to 0.
+Set stone to 0.
+Set iron to 0.
+Set gold to 0.
+Set food to 5.
+
+Create player named steve at x 400 y 300.
+Set steve color to green.
+Set steve size to 24.
+
+Create rectangle named ground1 at x 0 y 0.
+Set ground1 color to "#90EE90".
+Set ground1 width to 800.
+Set ground1 height to 600.
+
+Create rectangle named treeTrunk1 at x 70 y 70.
+Set treeTrunk1 color to brown.
+Set treeTrunk1 width to 20.
+Set treeTrunk1 height to 36.
+Create circle named treeLeaf1 at x 70 y 52.
+Set treeLeaf1 color to darkgreen.
+Set treeLeaf1 size to 44.
+
+Create rectangle named treeTrunk2 at x 700 y 80.
+Set treeTrunk2 color to brown.
+Set treeTrunk2 width to 20.
+Set treeTrunk2 height to 36.
+Create circle named treeLeaf2 at x 700 y 62.
+Set treeLeaf2 color to darkgreen.
+Set treeLeaf2 size to 44.
+
+Create rectangle named treeTrunk3 at x 150 y 480.
+Set treeTrunk3 color to brown.
+Set treeTrunk3 width to 20.
+Set treeTrunk3 height to 36.
+Create circle named treeLeaf3 at x 150 y 462.
+Set treeLeaf3 color to darkgreen.
+Set treeLeaf3 size to 44.
+
+Create rectangle named treeTrunk4 at x 630 y 470.
+Set treeTrunk4 color to brown.
+Set treeTrunk4 width to 20.
+Set treeTrunk4 height to 36.
+Create circle named treeLeaf4 at x 630 y 452.
+Set treeLeaf4 color to darkgreen.
+Set treeLeaf4 size to 44.
+
+Create block named stone1 at x 340 y 140.
+Set stone1 color to gray.
+Set stone1 width to 28.
+Set stone1 height to 28.
+
+Create rectangle named stone2 at x 520 y 200.
+Set stone2 color to gray.
+Set stone2 width to 28.
+Set stone2 height to 28.
+
+Create rectangle named ironOre at x 280 y 360.
+Set ironOre color to silver.
+Set ironOre width to 24.
+Set ironOre height to 24.
+
+Create rectangle named goldOre at x 550 y 380.
+Set goldOre color to gold.
+Set goldOre width to 24.
+Set goldOre height to 24.
+
+Create rectangle named diamondOre at x 130 y 260.
+Set diamondOre color to cyan.
+Set diamondOre width to 24.
+Set diamondOre height to 24.
+
+Create rectangle named coalOre at x 660 y 290.
+Set coalOre color to black.
+Set coalOre width to 24.
+Set coalOre height to 24.
+
+Create rectangle named water1 at x 300 y 60.
+Set water1 color to blue.
+Set water1 width to 80.
+Set water1 height to 30.
+Create rectangle named water2 at x 460 y 520.
+Set water2 color to blue.
+Set water2 width to 70.
+Set water2 height to 30.
+
+Create circle named sheep1 at x 250 y 220.
+Set sheep1 color to white.
+Set sheep1 size to 20.
+Create circle named sheep2 at x 550 y 270.
+Set sheep2 color to lightgray.
+Set sheep2 size to 20.
+Create circle named cow1 at x 450 y 130.
+Set cow1 color to brown.
+Set cow1 size to 22.
+
+Create rectangle named house1 at x 170 y 170.
+Set house1 color to "#8B7355".
+Set house1 width to 70.
+Set house1 height to 60.
+Create rectangle named house2 at x 175 y 175.
+Set house2 color to "#A0522D".
+Set house2 width to 60.
+Set house2 height to 50.
+Create rectangle named roof1 at x 200 y 150.
+Set roof1 color to red.
+Set roof1 width to 14.
+Set roof1 height to 14.
+
+Create circle named flower1 at x 100 y 160.
+Set flower1 color to red.
+Set flower1 size to 10.
+Create circle named flower2 at x 110 y 170.
+Set flower2 color to yellow.
+Set flower2 size to 10.
+Create circle named flower3 at x 680 y 500.
+Set flower3 color to pink.
+Set flower3 size to 10.
+Create circle named flower4 at x 690 y 510.
+Set flower4 color to red.
+Set flower4 size to 10.
+
+Create circle named zombie1 at x 80 y 440.
+Set zombie1 color to red.
+Set zombie1 size to 22.
+Create circle named zombie2 at x 720 y 420.
+Set zombie2 color to darkred.
+Set zombie2 size to 22.
+Create circle named creeper1 at x 500 y 500.
+Set creeper1 color to lime.
+Set creeper1 size to 22.
+
+Create button named mineBtn with text Chop.
+Create button named fightBtn with text Fight.
+Create button named eatBtn with text Eat.
+Create button named craftBtn with text Craft.
+Create button named buildBtn with text Build.
+Create button named statsBtn with text Stats.
+
+When key w pressed:
+    Move steve up by 10.
+
+When key s pressed:
+    Move steve down by 10.
+
+When key a pressed:
+    Move steve left by 10.
+
+When key d pressed:
+    Move steve right by 10.
+
+When steve touches treeTrunk1:
+    Show text Chopped tree! Got 2 wood.
+    Move treeTrunk1 right by 300.
+    Move treeLeaf1 right by 300.
+
+When steve touches treeTrunk2:
+    Show text Chopped tree! Got 2 wood.
+    Move treeTrunk2 left by 300.
+    Move treeLeaf2 left by 300.
+
+When steve touches treeTrunk3:
+    Show text Chopped tree! Got 2 wood.
+    Move treeTrunk3 right by 300.
+    Move treeLeaf3 right by 300.
+
+When steve touches treeTrunk4:
+    Show text Chopped tree! Got 2 wood.
+    Move treeTrunk4 left by 300.
+    Move treeLeaf4 left by 300.
+
+When steve touches stone1:
+    Show text Mined stone! Got 2 stone.
+    Move stone1 down by 300.
+
+When steve touches stone2:
+    Show text Mined stone! Got 2 stone.
+    Move stone2 up by 300.
+
+When steve touches ironOre:
+    Show text Found iron! Needs smelting.
+    Move ironOre right by 300.
+
+When steve touches goldOre:
+    Show text Found gold! Rare!
+    Move goldOre down by 300.
+
+When steve touches diamondOre:
+    Show text Found diamond! Best ore!
+    Move diamondOre left by 300.
+
+When steve touches coalOre:
+    Show text Found coal! Make torches.
+    Move coalOre up by 300.
+
+When steve touches sheep1:
+    Show text Baa! Sheep drops wool.
+    Move sheep1 left by 80.
+
+When steve touches sheep2:
+    Show text Baa! Got more wool.
+    Move sheep2 right by 80.
+
+When steve touches cow1:
+    Show text Moo! Got milk and leather.
+    Move cow1 down by 80.
+
+When steve touches zombie1:
+    Show text Zombie hits you! Lost 2 health.
+    Move zombie1 right by 60.
+
+When steve touches zombie2:
+    Show text Zombie attacks! Run!
+    Move zombie2 left by 60.
+
+When steve touches creeper1:
+    Show text Creeper explodes! Lost 4 health.
+    Move creeper1 up by 60.
+
+When steve touches water1:
+    Show text Swimming in the river.
+    Move steve down by 30.
+
+When steve touches water2:
+    Show text Crossing the pond.
+    Move steve up by 30.
+
+When button mineBtn clicked:
+    Show text Swing your pickaxe! Hit ores to collect.
+
+When button fightBtn clicked:
+    Show text Draw your sword! Attack zombies and creepers.
+
+When button eatBtn clicked:
+    Show text Ate some bread. Health restored.
+
+When button craftBtn clicked:
+    Show text Crafting table open. Made stone pickaxe.
+
+When button buildBtn clicked:
+    Show text Placed blocks. Built a small shelter.
+
+When button statsBtn clicked:
+    Show text Health 10 | Wood 0 | Stone 0 | Iron 0 | Gold 0.
+
+Every 2000 milliseconds:
+    Move sheep1 right by 6.
+
+Every 2500 milliseconds:
+    Move sheep2 left by 6.
+
+Every 3000 milliseconds:
+    Move cow1 right by 5.
+
+Every 3000 milliseconds:
+    Move zombie1 left by 8.
+
+Every 3500 milliseconds:
+    Move zombie2 right by 8.
+
+Every 4000 milliseconds:
+    Move creeper1 down by 7.

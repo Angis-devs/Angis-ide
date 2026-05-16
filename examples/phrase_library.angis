@@ -1,0 +1,10 @@
+# Reusable phrase library
+
+Define phrase note {message:text} means Show, message.
+Define phrase start game means Say, started.
+
+Define phrase set {field:key} of {target:name} to {value}:
+    Set, target[field] to value.
+
+Define phrase show {field:key} of {target:name}:
+    Show, target[field].

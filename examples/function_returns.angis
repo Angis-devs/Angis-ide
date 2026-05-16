@@ -1,0 +1,15 @@
+# Angis function return demo
+
+Define, addPair with left and right:
+    Return, left + right.
+
+Define, firstName with row:
+    Return, row.name.
+
+Use json parse with text: {"name":"Ada"} as person.
+
+Call, addPair with 4, 6 as total.
+Call, firstName with person as name.
+
+Show, total.
+Show, name.

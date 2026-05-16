@@ -1,0 +1,16 @@
+# Word math works inside normal expressions
+
+Set, x to 5.
+Set, y to 7.
+
+Set total to x plus y times 2.
+Set half to total divided by 2.
+Set left to total minus y.
+
+If total is bigger than x times 3:
+    Show, total.
+
+If half is same as 9.5:
+    Show, half.
+
+Show, left.

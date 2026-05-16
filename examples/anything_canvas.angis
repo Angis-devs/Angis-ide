@@ -1,0 +1,46 @@
+# General visual app example
+
+App, Anything Canvas.
+Scene, canvas.
+Window size 800 by 500.
+
+Text, Use A and D to move the box. Click the ball.
+
+Create rectangle named box at x 100 y 220.
+Set box color to red.
+Set box width to 120.
+Set box height to 80.
+Put box at (140, 220, 0).
+Resize box to 140 by 90.
+
+Make purple box named panel at (30, 90, 0) size 160 by 70.
+Draw green circle named target at x 620 y 210 size 72 x 72.
+
+Create circle named ball at x 520 y 210.
+Set ball color to green.
+Set ball size to 70.
+Place ball at x 520 y 210 z 0.
+Set ball size to 72 x 72.
+
+Create text named title at x 24 y 32 saying Angis canvas objects.
+Set title color to black.
+Set title size to 22.
+
+When key d pressed:
+    Move box right by 12.
+
+When key a pressed:
+    Move box left by 12.
+
+When ball clicked:
+    Show text You clicked the ball.
+    Play sound click.
+
+When mouse clicks:
+    Show text Mouse clicked.
+
+When box bumps into ball:
+    Show text Collision detected.
+
+Each 500 ms:
+    Animate ball left by 1 every 500 milliseconds.

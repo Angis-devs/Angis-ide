@@ -1,0 +1,15 @@
+# Optional words make one phrase understand multiple phrasings
+
+Blueprint Player with name: Ada, score: 0.
+Create Player named hero with name: Grace.
+
+Define phrase give {amount} points [to] {target}:
+    Set, target.score to target.score + amount.
+    Return, target.score.
+
+Give 3 points to hero as firstScore.
+Give 7 points hero as secondScore.
+
+Show, firstScore.
+Show, secondScore.
+Show, hero.score.

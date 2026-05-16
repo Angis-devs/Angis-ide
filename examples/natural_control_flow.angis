@@ -1,0 +1,24 @@
+# Natural control-flow wording
+
+Create list named inventory with wood, stone.
+Set, score to 0.
+
+Do this 2 times:
+    Add, 1 to score.
+
+If score is same as 2 then:
+    Say, same.
+
+If score is bigger than 1:
+    Say, bigger.
+
+If score is under 5:
+    Say, under.
+
+As long as score is less than 3:
+    Add, 1 to score.
+
+For every item from inventory:
+    Show, item.
+
+Show, score.

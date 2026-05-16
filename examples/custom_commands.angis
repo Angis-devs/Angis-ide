@@ -1,0 +1,20 @@
+# Teach Angis your own wording
+
+Blueprint Player with name: Ada, score: 0.
+Create Player named hero with name: Grace.
+
+Define command give points with target and amount:
+    Set, target.score to target.score + amount.
+    Return, target.score.
+
+Define command rename player with target and newName:
+    Set, target.name to newName.
+
+Give points with hero, 3 as firstScore.
+Give points with hero, 7 as secondScore.
+Rename player with hero, Lovelace.
+
+Show, hero.name.
+Show, firstScore.
+Show, secondScore.
+Show, hero.score.

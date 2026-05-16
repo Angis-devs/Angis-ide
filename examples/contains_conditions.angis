@@ -1,0 +1,21 @@
+# Natural contains and true/false conditions
+
+Create list named inventory with wood, stone.
+Create dictionary named player with name: Ada, score: 42.
+Set, phrase to hello world.
+Set, ready to true.
+
+If inventory contains wood:
+    Say, list contains.
+
+If player has score:
+    Say, map has score.
+
+If phrase contains world:
+    Say, text contains world.
+
+If ready:
+    Say, ready is true.
+
+If shield is not in inventory:
+    Say, no shield.

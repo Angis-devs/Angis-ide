@@ -1,0 +1,7 @@
+# Place a file in an app window with custom wording
+
+App, File Window.
+
+Define phrase place {file:path} at {x:number} {y:number} {z:number} means Attach file file to window at x x y y z z.
+
+Place /Users/fellflow/Desktop/Angis/README.md at 20 80 0.

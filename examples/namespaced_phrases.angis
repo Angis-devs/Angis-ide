@@ -1,0 +1,7 @@
+# Namespaced phrases let Angis grow with your wording
+
+Define phrase app.start means Say, started.
+Define phrase app.stop means Say, stopped.
+
+App start.
+app.stop.

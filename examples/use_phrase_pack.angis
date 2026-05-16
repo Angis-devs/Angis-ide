@@ -1,0 +1,6 @@
+# Use a nested phrase pack
+
+use phrase pack phrases/game.angis
+
+Start game.
+Note nested phrase pack works.

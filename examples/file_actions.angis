@@ -1,0 +1,9 @@
+# Natural file actions
+
+Read file examples/hello.angis as sourceText.
+Write copied text to file assets/natural-output.txt as writeResult.
+Get info for file assets/natural-output.txt as fileInfo.
+
+Show first 20 letters of sourceText.
+Show writeResult.
+Show name of fileInfo.

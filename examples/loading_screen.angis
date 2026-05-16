@@ -1,0 +1,12 @@
+# Loading screen synced to audio, then opens the app
+
+App, Loading Demo.
+Loding screen.
+Scene, 3D world.
+
+Text, App opened after loading.
+Create player named hero at x 0 y 0 z 0.
+Create button named start with text Start.
+
+When button start clicked:
+    Show text Started.

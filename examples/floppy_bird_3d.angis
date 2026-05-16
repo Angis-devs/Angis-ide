@@ -1,0 +1,198 @@
+App, Floppy Bird 3D.
+Scene, true 3D.
+Window size 800 by 600.
+camera at x 0 y 0 z -8.
+mode third person.
+
+Set score to 0.
+Set gravity to 3.
+Set flap to -30.
+Set bird_y to 0.
+Set velocity to 0.
+Set wall_speed to 0.3.
+Set game_over to false.
+Set started to false.
+Set gap_half to 30.
+Set shift to 0.
+
+Set w1z to 30.
+Set w1g to 0.
+Set w2z to 55.
+Set w2g to 0.
+Set w3z to 80.
+Set w3g to 0.
+Set w4z to 105.
+Set w4g to 0.
+
+Create image named bird at x 0 y 0 z 0 from file "duck.gif".
+Set bird size to 40.
+
+Create box named w1t at x 0 y 40 z 30.
+Set w1t color to #ef4444.
+Set w1t scale_x to 2.5.
+Set w1t scale_y to 4.
+Set w1t scale_z to 0.3.
+
+Create box named w1b at x 0 y -40 z 30.
+Set w1b color to #ef4444.
+Set w1b scale_x to 2.5.
+Set w1b scale_y to 4.
+Set w1b scale_z to 0.3.
+
+Create box named w2t at x 0 y 40 z 55.
+Set w2t color to #3b82f6.
+Set w2t scale_x to 2.5.
+Set w2t scale_y to 4.
+Set w2t scale_z to 0.3.
+
+Create box named w2b at x 0 y -40 z 55.
+Set w2b color to #3b82f6.
+Set w2b scale_x to 2.5.
+Set w2b scale_y to 4.
+Set w2b scale_z to 0.3.
+
+Create box named w3t at x 0 y 40 z 80.
+Set w3t color to #22c55e.
+Set w3t scale_x to 2.5.
+Set w3t scale_y to 4.
+Set w3t scale_z to 0.3.
+
+Create box named w3b at x 0 y -40 z 80.
+Set w3b color to #22c55e.
+Set w3b scale_x to 2.5.
+Set w3b scale_y to 4.
+Set w3b scale_z to 0.3.
+
+Create box named w4t at x 0 y 40 z 105.
+Set w4t color to #a855f7.
+Set w4t scale_x to 2.5.
+Set w4t scale_y to 4.
+Set w4t scale_z to 0.3.
+
+Create box named w4b at x 0 y -40 z 105.
+Set w4b color to #a855f7.
+Set w4b scale_x to 2.5.
+Set w4b scale_y to 4.
+Set w4b scale_z to 0.3.
+
+on click:
+    If game_over is true:
+        Set score to 0.
+        Set bird_y to 0.
+        Set velocity to 0.
+        Set game_over to false.
+        Set started to false.
+        Set shift to 0.
+        Set w1z to 30.
+        Set w1g to 0.
+        Set w2z to 55.
+        Set w2g to 0.
+        Set w3z to 80.
+        Set w3g to 0.
+        Set w4z to 105.
+        Set w4g to 0.
+        Set w1t z to 30.
+        Set w1b z to 30.
+        Set w1t y to 40.
+        Set w1b y to -40.
+        Set w2t z to 55.
+        Set w2b z to 55.
+        Set w2t y to 40.
+        Set w2b y to -40.
+        Set w3t z to 80.
+        Set w3b z to 80.
+        Set w3t y to 40.
+        Set w3b y to -40.
+        Set w4t z to 105.
+        Set w4b z to 105.
+        Set w4t y to 40.
+        Set w4b y to -40.
+    If started is false:
+        Set started to true.
+    If game_over is false:
+        Set velocity to flap.
+
+every 30 ms:
+    If started is false:
+        break.
+    If game_over is true:
+        break.
+    Set velocity to velocity plus gravity.
+    Set bird_y to bird_y plus velocity.
+    Set bird y to bird_y.
+    Set w1z to w1z minus wall_speed.
+    Set w2z to w2z minus wall_speed.
+    Set w3z to w3z minus wall_speed.
+    Set w4z to w4z minus wall_speed.
+    Set w1t z to w1z.
+    Set w1b z to w1z.
+    Set w2t z to w2z.
+    Set w2b z to w2z.
+    Set w3t z to w3z.
+    Set w3b z to w3z.
+    Set w4t z to w4z.
+    Set w4b z to w4z.
+    If w1z is less than -5:
+        Set w1z to 130.
+        Set shift to shift plus 20.
+        If shift is greater than 60:
+            Set shift to 0.
+        Set w1g to shift.
+        Set w1t y to w1g plus gap_half.
+        Set w1b y to w1g minus gap_half.
+    If w2z is less than -5:
+        Set w2z to 130.
+        Set shift to shift plus 20.
+        If shift is greater than 60:
+            Set shift to 0.
+        Set w2g to shift.
+        Set w2t y to w2g plus gap_half.
+        Set w2b y to w2g minus gap_half.
+    If w3z is less than -5:
+        Set w3z to 130.
+        Set shift to shift plus 20.
+        If shift is greater than 60:
+            Set shift to 0.
+        Set w3g to shift.
+        Set w3t y to w3g plus gap_half.
+        Set w3b y to w3g minus gap_half.
+    If w4z is less than -5:
+        Set w4z to 130.
+        Set shift to shift plus 20.
+        If shift is greater than 60:
+            Set shift to 0.
+        Set w4g to shift.
+        Set w4t y to w4g plus gap_half.
+        Set w4b y to w4g minus gap_half.
+    If w1z is less than 3:
+        If w1z is greater than -3:
+            If bird_y is less than w1g minus gap_half:
+                Set game_over to true.
+                Show text "Game Over!".
+            If bird_y is greater than w1g plus gap_half:
+                Set game_over to true.
+                Show text "Game Over!".
+    If w2z is less than 3:
+        If w2z is greater than -3:
+            If bird_y is less than w2g minus gap_half:
+                Set game_over to true.
+                Show text "Game Over!".
+            If bird_y is greater than w2g plus gap_half:
+                Set game_over to true.
+                Show text "Game Over!".
+    If w3z is less than 3:
+        If w3z is greater than -3:
+            If bird_y is less than w3g minus gap_half:
+                Set game_over to true.
+                Show text "Game Over!".
+            If bird_y is greater than w3g plus gap_half:
+                Set game_over to true.
+                Show text "Game Over!".
+    If w4z is less than 3:
+        If w4z is greater than -3:
+            If bird_y is less than w4g minus gap_half:
+                Set game_over to true.
+                Show text "Game Over!".
+            If bird_y is greater than w4g plus gap_half:
+                Set game_over to true.
+                Show text "Game Over!".

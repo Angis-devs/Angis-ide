@@ -1,0 +1,15 @@
+# List and dictionary literal data
+
+Set inventory to [wood, stone, 3].
+Set player to {name: Ada, score: 42, items: [key, map]}.
+
+Show item 0 of inventory.
+Show item 2 of inventory.
+Show name of player.
+Show player.items[1].
+
+If inventory contains stone:
+    Say, literal list works.
+
+If player has score:
+    Say, literal map works.

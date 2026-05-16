@@ -1,0 +1,6 @@
+# App-building phrase pack
+
+Define phrase make app {title:text} means App, title.
+Define phrase make canvas means Scene, canvas.
+Define phrase put text {message:text} means Text, message.
+Define phrase put file {file:path} at {x:number} {y:number} {z:number} means Attach file file to window at x x y y z z.

@@ -1,0 +1,7 @@
+# Variable examples
+set x to 5
+make y equal 8
+store "Ada" as name
+show x
+display y
+tell me name

@@ -1,0 +1,59 @@
+{
+  "variables": {},
+  "lists": {
+    "inventory": [
+      "key",
+      "map",
+      "shield"
+    ]
+  },
+  "app": {
+    "title": "Creator V2 World",
+    "scene": "3d world",
+    "objects": [
+      {
+        "kind": "player",
+        "name": "hero",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "text": "",
+        "path": "",
+        "properties": {
+          "color": "red",
+          "size": 22
+        }
+      },
+      {
+        "kind": "player",
+        "name": "enemy",
+        "x": 2,
+        "y": 0,
+        "z": 2,
+        "text": "",
+        "path": "",
+        "properties": {}
+      },
+      {
+        "kind": "image",
+        "name": "city",
+        "x": 0,
+        "y": -40,
+        "z": 4,
+        "text": "",
+        "path": "/Users/fellflow/Desktop/Angis/assets/gta_style_city.png",
+        "properties": {}
+      },
+      {
+        "kind": "button",
+        "name": "start",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "text": "Start Mission",
+        "path": "",
+        "properties": {}
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+# Typed slots make custom phrases stricter
+
+Blueprint Player with name: Ada, score: 0.
+Create Player named hero with name: Grace.
+
+Define phrase give {amount:number} points to {target:name}:
+    Set, target.score to target.score + amount.
+    Return, target.score.
+
+Define phrase note {message:text}:
+    Show, message.
+
+Give 3 points to hero as firstScore.
+Note hello from typed text.
+
+Show, firstScore.
+Show, hero.score.
+
+# This would fail because amount must be a number:
+# Give many points to hero.

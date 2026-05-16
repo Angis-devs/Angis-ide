@@ -1,0 +1,13 @@
+# Angis logical condition demo
+
+Set, score to 4.
+Set, lives to 2.
+
+If, score is at least 3 and lives is greater than 0:
+    Say, keep playing.
+
+If, score is less than 3 or lives is 2:
+    Say, backup condition.
+
+If, not score is less than 3:
+    Say, not low.

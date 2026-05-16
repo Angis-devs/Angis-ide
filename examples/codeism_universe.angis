@@ -1,0 +1,188 @@
+App, Codeism Universe Simulation.
+Dark background.
+Window size 600 by 700.
+
+Set virtue to 0.
+Set heaven_souls to 0.
+Set hell_souls to 0.
+
+Set s1_y to 100.
+Set s2_y to 370.
+Set s3_y to 340.
+Set s4_y to 360.
+Set s5_y to 380.
+Set s6_y to 550.
+
+Set s1_color to "gold".
+Set s2_color to "gray".
+Set s3_color to "gray".
+Set s4_color to "gray".
+Set s5_color to "gray".
+Set s6_color to "red".
+
+Create rectangle named heaven at x 0 y 0.
+Set heaven width to 600.
+Set heaven height to 200.
+Set heaven color to gold.
+Set heaven border to white.
+Set heaven border_width to 2.
+
+Create rectangle named hell at x 0 y 500.
+Set hell width to 600.
+Set hell height to 200.
+Set hell color to darkred.
+Set hell border to orange.
+Set hell border_width to 2.
+
+Create rectangle named earth at x 150 y 330.
+Set earth width to 300.
+Set earth height to 40.
+Set earth color to green.
+Set earth border to white.
+Set earth border_width to 1.
+
+Create text named title at x 200 y 215 saying "The Codeism Universe".
+Set title font_size to 16.
+Set title color to white.
+
+Create text named heavenLabel at x 200 y 85 saying "Heaven: Connected to the Source".
+Set heavenLabel font_size to 12.
+Set heavenLabel color to white.
+
+Create text named hellLabel at x 200 y 540 saying "Hell: Disconnected from Code".
+Set hellLabel font_size to 12.
+Set hellLabel color to white.
+
+Create text named stats at x 200 y 260 saying "Virtue: 0 | Heaven: 0 | Hell: 0".
+Set stats font_size to 12.
+Set stats color to lightgray.
+
+Create text named guide at x 200 y 680 saying "Click: raise souls | Space: lower souls | The Code governs all."
+Set guide font_size to 10.
+Set guide color to gray.
+
+Create circle named soul1 at x 180 y 350.
+Set soul1 size to 8.
+
+Create circle named soul2 at x 220 y 370.
+Set soul2 size to 8.
+
+Create circle named soul3 at x 260 y 340.
+Set soul3 size to 8.
+
+Create circle named soul4 at x 300 y 360.
+Set soul4 size to 8.
+
+Create circle named soul5 at x 340 y 380.
+Set soul5 size to 8.
+
+Create circle named soul6 at x 380 y 345.
+Set soul6 size to 8.
+
+Set soul1 y to s1_y.
+Set soul1 color to s1_color.
+Set soul6 y to s6_y.
+Set soul6 color to s6_color.
+
+Add 1 to heaven_souls.
+Add 1 to hell_souls.
+
+Attach file "HeavenCode.txt" to window at x 0 y 0 z 0.
+Attach file "SoulRecords.txt" to window at x 0 y 0 z 1.
+
+on click:
+    Add 1 to virtue.
+    If s1_y is greater than 100:
+        Set s1_y to s1_y minus 30.
+    If s2_y is greater than 100:
+        Set s2_y to s2_y minus 30.
+    If s3_y is greater than 100:
+        Set s3_y to s3_y minus 30.
+    If s4_y is greater than 100:
+        Set s4_y to s4_y minus 30.
+    If s5_y is greater than 100:
+        Set s5_y to s5_y minus 30.
+    If s6_y is greater than 100:
+        Set s6_y to s6_y minus 30.
+
+on space pressed:
+    Subtract 1 from virtue.
+    If s1_y is less than 500:
+        Set s1_y to s1_y plus 30.
+    If s2_y is less than 500:
+        Set s2_y to s2_y plus 30.
+    If s3_y is less than 500:
+        Set s3_y to s3_y plus 30.
+    If s4_y is less than 500:
+        Set s4_y to s4_y plus 30.
+    If s5_y is less than 500:
+        Set s5_y to s5_y plus 30.
+    If s6_y is less than 500:
+        Set s6_y to s6_y plus 30.
+
+every 500 ms:
+    Set heaven_souls to 0.
+    Set hell_souls to 0.
+
+    Set s1_color to "gray".
+    If s1_y is less than 200:
+        Set s1_color to "gold".
+        Add 1 to heaven_souls.
+    If s1_y is greater than 500:
+        Set s1_color to "red".
+        Add 1 to hell_souls.
+
+    Set s2_color to "gray".
+    If s2_y is less than 200:
+        Set s2_color to "gold".
+        Add 1 to heaven_souls.
+    If s2_y is greater than 500:
+        Set s2_color to "red".
+        Add 1 to hell_souls.
+
+    Set s3_color to "gray".
+    If s3_y is less than 200:
+        Set s3_color to "gold".
+        Add 1 to heaven_souls.
+    If s3_y is greater than 500:
+        Set s3_color to "red".
+        Add 1 to hell_souls.
+
+    Set s4_color to "gray".
+    If s4_y is less than 200:
+        Set s4_color to "gold".
+        Add 1 to heaven_souls.
+    If s4_y is greater than 500:
+        Set s4_color to "red".
+        Add 1 to hell_souls.
+
+    Set s5_color to "gray".
+    If s5_y is less than 200:
+        Set s5_color to "gold".
+        Add 1 to heaven_souls.
+    If s5_y is greater than 500:
+        Set s5_color to "red".
+        Add 1 to hell_souls.
+
+    Set s6_color to "gray".
+    If s6_y is less than 200:
+        Set s6_color to "gold".
+        Add 1 to heaven_souls.
+    If s6_y is greater than 500:
+        Set s6_color to "red".
+        Add 1 to hell_souls.
+
+    Set soul1 y to s1_y.
+    Set soul1 color to s1_color.
+    Set soul2 y to s2_y.
+    Set soul2 color to s2_color.
+    Set soul3 y to s3_y.
+    Set soul3 color to s3_color.
+    Set soul4 y to s4_y.
+    Set soul4 color to s4_color.
+    Set soul5 y to s5_y.
+    Set soul5 color to s5_color.
+    Set soul6 y to s6_y.
+    Set soul6 color to s6_color.
+
+    Set stats text to "Virtue: {virtue} | Heaven: {heaven_souls} | Hell: {hell_souls}".

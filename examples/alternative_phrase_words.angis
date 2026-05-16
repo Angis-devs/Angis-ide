@@ -1,0 +1,15 @@
+# Alternative words make one phrase understand word choices
+
+Blueprint Player with name: Ada, score: 0.
+Create Player named hero with name: Grace.
+
+Define phrase give {amount} points (to|for) {target}:
+    Set, target.score to target.score + amount.
+    Return, target.score.
+
+Give 3 points to hero as firstScore.
+Give 7 points for hero as secondScore.
+
+Show, firstScore.
+Show, secondScore.
+Show, hero.score.

@@ -1,0 +1,19 @@
+# Natural math and random actions
+
+Round 3.7 as rounded.
+Floor 3.7 as floored.
+Ceil 3.2 as ceiled.
+Absolute -5 as positive.
+Raise 2 to power 8 as powered.
+Clamp 14 between 1 and 10 as clamped.
+Pick random number between 1 and 6 as roll.
+
+Show rounded.
+Show floored.
+Show ceiled.
+Show positive.
+Show powered.
+Show clamped.
+
+If roll is between 1 and 6:
+    Say, random range works.

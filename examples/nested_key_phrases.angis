@@ -1,0 +1,16 @@
+# Key slots can address nested object paths
+
+Use json parse with text: {"name":"Grace","stats":{"score":0,"health":10}} as hero.
+
+Define phrase set {field:key} of {target:name} to {value}:
+    Set, target[field] to value.
+
+Define phrase show {field:key} of {target:name}:
+    Show, target[field].
+
+Set stats.score of hero to 9.
+Set stats.health of hero to 12.
+
+Show stats.score of hero.
+Show stats.health of hero.
+Show, hero.stats.score.

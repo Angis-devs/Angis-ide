@@ -1,0 +1,14 @@
+# Natural path actions
+
+Get file name from assets/items.csv as pathName.
+Get file extension from assets/items.csv as pathExtension.
+Get folder from assets/items.csv as pathFolder.
+Get stem from assets/items.csv as pathStem.
+Join path assets with items.csv as joinedPath.
+
+Show pathName.
+Show pathExtension.
+Show pathStem.
+
+If joinedPath ends with items.csv:
+    Say, path join works.

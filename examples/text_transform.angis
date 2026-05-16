@@ -1,0 +1,11 @@
+# Natural text transforms
+
+Set title to hello brave world.
+
+Split title by space as words.
+Join words with dash as slug.
+Replace brave in title with bright as renamed.
+
+Show first item of words.
+Show slug.
+Show renamed.

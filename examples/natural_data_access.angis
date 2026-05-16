@@ -1,0 +1,51 @@
+# Natural data access and assignment
+
+Create dictionary named player with name: Ada, score: 42.
+Create list named inventory with wood, stone.
+
+Show score of player.
+Show item 0 of inventory.
+
+Set score of player to score of player plus 10.
+Set item 0 of inventory to sword.
+Give player health 10.
+Increase health of player by 5.
+Take 2 from health of player.
+Create list named numbers with 10, 20.
+Add 3 to item 1 of numbers.
+Take 1 from item 1 of numbers.
+
+Show score of player.
+Show item 0 of inventory.
+Show health of player.
+Show item 1 of numbers.
+
+If score of player is greater than 50:
+    Say, score changed.
+
+If item 0 of inventory is sword:
+    Say, item changed.
+
+Store Ada Lovelace as name.
+Store "picture.png" as fileName.
+
+If health of player is between 10 and 20:
+    Say, health in range.
+
+If name starts with Ada:
+    Say, name starts.
+
+If fileName ends with png:
+    Say, file extension.
+
+If health of player is not between 1 and 5:
+    Say, health outside low range.
+
+If name does not start with Bob:
+    Say, not Bob.
+
+If fileName does not end with jpg:
+    Say, not jpg.
+
+If name starts with ada ignoring case:
+    Say, case insensitive.

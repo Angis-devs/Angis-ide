@@ -1,0 +1,17 @@
+# Natural map transforms
+
+Set player to {name: Ada, score: 42}.
+Set bonus to {level: 3}.
+
+Get score from player as playerScore.
+Get keys from player as playerKeys.
+Get values from player as playerValues.
+Merge player with bonus as updatedPlayer.
+
+Show playerScore.
+Show playerKeys.
+Show playerValues.
+Show level of updatedPlayer.
+
+If updatedPlayer has level:
+    Say, merge works.

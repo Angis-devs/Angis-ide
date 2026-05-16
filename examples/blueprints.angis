@@ -1,0 +1,23 @@
+# Reusable object blueprints
+
+Blueprint Player with name: Ada, health: 10, score: 0.
+Create Player named hero with name: Grace.
+Create Player named enemy with name: Boss, health: 30.
+
+Define method heal for Player with amount:
+    Set, self.health to self.health + amount.
+    Return, self.health.
+
+Define method scorePoint for Player:
+    Set, self.score to self.score + 1.
+    Return, self.score.
+
+Call, hero.heal with 5 as heroHealth.
+Call, hero.scorePoint as heroScore.
+Call, enemy.heal with 2 as enemyHealth.
+
+Show, hero.name.
+Show, heroHealth.
+Show, heroScore.
+Show, enemy.name.
+Show, enemyHealth.

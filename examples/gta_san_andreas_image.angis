@@ -1,0 +1,14 @@
+# GTA San Andreas style world with an attached picture
+
+App, San Andreas World.
+Scene, 3D world.
+Text, Explore the city.
+Text, Enter vehicles.
+Text, Start missions.
+
+Set file attach to window at x 0 y -40 z 4 from file /Users/fellflow/Desktop/Angis/assets/gta_style_city.png.
+
+Button, Start Mission.
+Button, Enter Vehicle.
+Button, Open Map.
+Button, Save Game.

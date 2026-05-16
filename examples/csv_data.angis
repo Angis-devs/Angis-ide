@@ -1,0 +1,10 @@
+# Natural CSV and data actions
+
+Read CSV file assets/items.csv as rows.
+Count rows in rows as rowCount.
+Get column name from rows as names.
+Keep rows where name is Ada as adaRows.
+
+Show rowCount.
+Show first item of names.
+Show score of first item of adaRows.

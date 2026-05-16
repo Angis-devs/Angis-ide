@@ -1,0 +1,8 @@
+# Build an app using custom phrase-pack wording
+
+use phrase pack phrases/app.angis
+
+Make app Custom Words.
+Make canvas.
+Put text Hello from custom app wording.
+Put file /Users/fellflow/Desktop/Angis/README.md at 20 80 0.

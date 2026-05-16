@@ -1,0 +1,17 @@
+# Objects can have reusable behavior
+
+Create dictionary named player with name: Ada, health: 10.
+
+Define method heal for player with amount:
+    Set, self.health to self.health + amount.
+    Return, self.health.
+
+Define method rename for player with newName:
+    Set, self.name to newName.
+
+Call, player.heal with 5 as healed.
+Call, player.rename with Lovelace.
+
+Show, player.name.
+Show, healed.
+Show, player.health.

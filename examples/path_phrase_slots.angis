@@ -1,0 +1,5 @@
+# Path slots capture local file paths
+
+Define phrase attach {file:path} means Attach file at file.
+
+Attach /Users/fellflow/Desktop/Angis/README.md.

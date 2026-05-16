@@ -1,0 +1,7 @@
+# Angis app example
+
+App, My First Angis App.
+Text, Hello inside a real app window.
+Text, This is not just output text.
+Button, Click me.
+Button, Save.

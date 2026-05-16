@@ -1,0 +1,24 @@
+# Angis Creator Runtime example
+
+App, Creator World.
+Scene, 3D world.
+
+Create player named hero at x 0 y 0 z 0.
+Create image named city at x 0 y -40 z 4 from file /Users/fellflow/Desktop/Angis/assets/gta_style_city.png.
+Create button named start with text Start Mission.
+
+When key w pressed:
+    Move hero forward by 1.
+
+When key s pressed:
+    Move hero backward by 1.
+
+When key a pressed:
+    Move hero left by 1.
+
+When key d pressed:
+    Move hero right by 1.
+
+When button start clicked:
+    Show text Mission started.
+    Move hero forward by 2.
