@@ -20,7 +20,7 @@ class RangeExpr:
     end: "Expression"
 
 
-Expression = Union[Value, Reference, "BinaryOp", "UnaryOp", "Access", "SliceOf", "LengthOf", "Lambda", "Comprehension", "RangeExpr", list["Expression"], dict[str, "Expression"]]
+Expression = Union[Value, Reference, "BinaryOp", "UnaryOp", "Access", "SliceOf", "LengthOf", "Lambda", "Comprehension", "RangeExpr", "PythonEval", list["Expression"], dict[str, "Expression"]]
 
 
 @dataclass(frozen=True)
@@ -51,6 +51,19 @@ class SliceOf:
 
 @dataclass(frozen=True)
 class LengthOf:
+    value: Expression
+
+
+@dataclass(frozen=True)
+class TernaryExpr:
+    condition: Expression
+    true_expr: Expression
+    false_expr: Expression
+
+
+@dataclass(frozen=True)
+class WalrusExpr:
+    name: str
     value: Expression
 
 
@@ -172,6 +185,7 @@ class FunctionDef(Instruction):
     params: list[str] | None = None
     param_types: dict[str, str] | None = None
     return_type: str = ""
+    decorators: list[str] | None = None
 
     def __str__(self) -> str:
         return f"FUNCTION({self.name})"
@@ -271,6 +285,23 @@ class ImportModule(Instruction):
 
 
 @dataclass(frozen=True)
+class PythonEval:
+    expression: str
+    result_name: str = ""
+
+    def __str__(self) -> str:
+        return f"PYTHON_EVAL({self.expression})"
+
+
+@dataclass(frozen=True)
+class PythonExec(Instruction):
+    code: str
+
+    def __str__(self) -> str:
+        return f"PYTHON_EXEC({self.code[:50]})"
+
+
+@dataclass(frozen=True)
 class PythonImport(Instruction):
     module: str
     result_name: str = ""
@@ -357,6 +388,17 @@ class CreateMap(Instruction):
 
     def __str__(self) -> str:
         return f"MAP({self.name})"
+
+
+@dataclass(frozen=True)
+class BlueprintInitDef(Instruction):
+    blueprint_name: str
+    params: list[str]
+    param_types: dict[str, str] | None = None
+    body: list[object] = field(default_factory=list)
+
+    def __str__(self) -> str:
+        return f"INIT({self.blueprint_name})"
 
 
 @dataclass(frozen=True)
@@ -859,6 +901,37 @@ class SwitchBlock(Instruction):
 
 
 @dataclass(frozen=True)
+class MatchBlock(Instruction):
+    condition: Expression
+    cases: list[tuple[list[Expression], list[object]]]
+    default_body: list[object] | None = None
+    variables: list[tuple[str, str]] | None = None  # (variable_name, pattern_position)
+
+    def __str__(self) -> str:
+        return f"MATCH({format_expr(self.condition)})"
+
+
+@dataclass(frozen=True)
+class AsyncForBlock(Instruction):
+    item_name: str
+    collection: Expression
+    body: list[object]
+
+    def __str__(self) -> str:
+        return f"ASYNC_FOR({self.item_name} in {format_expr(self.collection)})"
+
+
+@dataclass(frozen=True)
+class AsyncWithBlock(Instruction):
+    resource: Expression
+    body: list[object]
+    variable_name: str = ""
+
+    def __str__(self) -> str:
+        return f"ASYNC_WITH({format_expr(self.resource)})"
+
+
+@dataclass(frozen=True)
 class TryBlock(Instruction):
     body: list[object]
     except_body: list[object]
@@ -886,6 +959,34 @@ class ErrorDef(Instruction):
 
     def __str__(self) -> str:
         return f"ERROR_DEF({self.name})"
+
+
+@dataclass(frozen=True)
+class OperatorOverloadDef(Instruction):
+    operator: str
+    blueprint_name: str
+    param1: str
+    param2: str
+    body: list[object]
+
+    def __str__(self) -> str:
+        return f"OVERLOAD({self.operator} for {self.blueprint_name})"
+
+
+@dataclass(frozen=True)
+class SetLiteral:
+    values: list[Expression]
+
+    def __str__(self) -> str:
+        return f"{{{' '.join(format_expr(v) for v in self.values)}}}"
+
+
+@dataclass(frozen=True)
+class TupleLiteral:
+    values: list[Expression]
+
+    def __str__(self) -> str:
+        return f"({' '.join(format_expr(v) for v in self.values)})"
 
 
 @dataclass(frozen=True)
@@ -1005,4 +1106,12 @@ def format_expr(expr: Expression) -> str:
         return str(expr)
     if isinstance(expr, Comprehension):
         return str(expr)
+    if isinstance(expr, SetLiteral):
+        return str(expr)
+    if isinstance(expr, TupleLiteral):
+        return str(expr)
+    if isinstance(expr, TernaryExpr):
+        return f"if({format_expr(expr.true_expr)}, {format_expr(expr.false_expr)})"
+    if isinstance(expr, WalrusExpr):
+        return f"({expr.name} := {format_expr(expr.value)})"
     return repr(expr) if isinstance(expr, str) else str(expr)

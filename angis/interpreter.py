@@ -119,6 +119,8 @@ from .ir import (
     Await,
     AsyncFunctionDef,
     AwaitExpr,
+    PythonEval,
+    PythonExec,
     PythonImport,
     WatchFile,
     NativeGUI,
@@ -128,6 +130,15 @@ from .ir import (
     UpdateVar,
     UseStdLibAction,
     WhileBlock,
+    SetLiteral,
+    TupleLiteral,
+    OperatorOverloadDef,
+    TernaryExpr,
+    WalrusExpr,
+    MatchBlock,
+    AsyncForBlock,
+    AsyncWithBlock,
+    BlueprintInitDef,
 )
 
 
@@ -154,15 +165,15 @@ def _has_yield(instructions: list[object]) -> bool:
     for instr in instructions:
         if isinstance(instr, YieldValue):
             return True
-        if isinstance(instr, (ForEachBlock, WhileBlock, RepeatBlock, IfBlock, TryBlock, SwitchBlock, WithBlock)):
+        if isinstance(instr, (ForEachBlock, WhileBlock, RepeatBlock, IfBlock, TryBlock, SwitchBlock, WithBlock, MatchBlock, AsyncForBlock, AsyncWithBlock)):
             children: list[object] = []
-            if isinstance(instr, (ForEachBlock, WhileBlock, RepeatBlock, WithBlock)):
+            if isinstance(instr, (ForEachBlock, WhileBlock, RepeatBlock, WithBlock, AsyncWithBlock)):
                 children = instr.body
             elif isinstance(instr, IfBlock):
                 children = instr.body + (instr.else_body or [])
             elif isinstance(instr, TryBlock):
                 children = instr.body + instr.except_body + instr.finally_body
-            elif isinstance(instr, SwitchBlock):
+            elif isinstance(instr, (SwitchBlock, MatchBlock)):
                 for _, case_body in instr.cases:
                     children.extend(case_body)
                 if instr.default_body:
@@ -195,6 +206,7 @@ class Interpreter:
     _future_counter: int = 0
     python_modules: dict[str, object] = field(default_factory=dict)
     async_functions: dict[str, AsyncFunctionDef] = field(default_factory=dict)
+    blueprint_inits: dict[str, BlueprintInitDef] = field(default_factory=dict)
     builtins: dict[str, Callable[..., object]] = field(default_factory=lambda: {
         "len": len,
         "str": str,
@@ -261,6 +273,10 @@ class Interpreter:
                 self.error_types[instruction.name] = True
             elif isinstance(instruction, AsyncFunctionDef):
                 self.async_functions[instruction.name] = instruction
+            elif isinstance(instruction, OperatorOverloadDef):
+                self.object_methods[(instruction.blueprint_name, f"__op_{instruction.operator}__")] = instruction
+            elif isinstance(instruction, BlueprintInitDef):
+                self.blueprint_inits[instruction.blueprint_name] = instruction
 
     def _run_instruction(self, instruction: object, captured: list[str]) -> None:
         if isinstance(instruction, IfBlock):
@@ -465,6 +481,15 @@ class Interpreter:
                 self.variables[instruction.result_name] = mod
                 self.python_modules[instruction.result_name] = mod
             return
+        if isinstance(instruction, PythonExec):
+            py_globals = {
+                "__builtins__": __builtins__,
+                **{k: v for k, v in self.variables.items() if not k.startswith("_")},
+                **self.python_modules,
+            }
+            exec(instruction.code, py_globals)
+            self.variables.update({k: v for k, v in py_globals.items() if not k.startswith("_") and k not in {"__builtins__"}})
+            return
         if isinstance(instruction, AsyncFunctionDef):
             self.async_functions[instruction.name] = instruction
             return
@@ -625,6 +650,70 @@ class Interpreter:
             return
         if isinstance(instruction, FunctionDef):
             self.functions[instruction.name] = instruction
+            return
+        if isinstance(instruction, ReturnValue):
+            if instruction.values:
+                raise _FunctionReturn(tuple(self.evaluate(v) for v in instruction.values))
+            raise _FunctionReturn(self.evaluate(instruction.value) if instruction.value is not None else None)
+        if isinstance(instruction, MatchBlock):
+            subject = self.evaluate(instruction.condition)
+            matched = False
+            for patterns, case_body in instruction.cases:
+                for pattern in patterns:
+                    pv = self.evaluate(pattern)
+                    if subject == pv:
+                        self._run_nested(case_body, captured)
+                        matched = True
+                        break
+                if matched:
+                    break
+            if not matched and instruction.default_body:
+                self._run_nested(instruction.default_body, captured)
+            return
+        if isinstance(instruction, AsyncForBlock):
+            iterable = self.evaluate(instruction.collection)
+            if not hasattr(iterable, '__aiter__'):
+                raise AngisRuntimeError("Async for requires an async iterable.")
+            if self._async_loop is None:
+                self._async_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self._async_loop)
+            async def _run_async_for():
+                items = []
+                async for item in iterable:
+                    items.append(item)
+                return items
+            items = self._async_loop.run_until_complete(_run_async_for())
+            previous = self.variables.get(instruction.item_name)
+            had_previous = instruction.item_name in self.variables
+            try:
+                for value in items:
+                    self.variables[instruction.item_name] = value
+                    try:
+                        self._run_nested(instruction.body, captured)
+                    except _LoopControl as ctrl:
+                        if ctrl.kind == "break":
+                            break
+            finally:
+                if had_previous:
+                    self.variables[instruction.item_name] = previous
+                else:
+                    self.variables.pop(instruction.item_name, None)
+            return
+        if isinstance(instruction, AsyncWithBlock):
+            if self._async_loop is None:
+                self._async_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self._async_loop)
+            resource = self.evaluate(instruction.resource)
+            async def _run_async_with():
+                async with resource as ctx:
+                    return ctx
+            ctx = self._async_loop.run_until_complete(_run_async_with())
+            if instruction.variable_name:
+                self.variables[instruction.variable_name] = ctx
+            self._run_nested(instruction.body, captured)
+            return
+        if isinstance(instruction, BlueprintInitDef):
+            self.blueprint_inits[instruction.blueprint_name] = instruction
             return
         if isinstance(instruction, ObjectMethodDef):
             self.object_methods[(instruction.object_name, instruction.method_name)] = instruction
@@ -980,6 +1069,8 @@ class Interpreter:
             return instruction
         if isinstance(instruction, AsyncFunctionDef):
             return instruction
+        if isinstance(instruction, OperatorOverloadDef):
+            return instruction
         if isinstance(instruction, DefineBlueprint):
             bp = {key: self.evaluate(value) for key, value in instruction.items.items()}
             if instruction.inherits:
@@ -1003,7 +1094,27 @@ class Interpreter:
                         values[k] = v
             values.update({key: self.evaluate(value) for key, value in instruction.items.items()})
             values["__type__"] = instruction.blueprint_name
+            init_def = self.blueprint_inits.get(instruction.blueprint_name)
+            if init_def:
+                param_names = init_def.params or []
+                items = instruction.items or {}
+                self.variables["self"] = values
+                previous = {name: self.variables.get(name) for name in param_names}
+                had_previous = {name: name in self.variables for name in param_names}
+                try:
+                    for name in param_names:
+                        if name in items:
+                            self.variables[name] = self.evaluate(items[name])
+                    self._run_nested(init_def.body, [])
+                finally:
+                    self.variables.pop("self", None)
+                    for name in param_names:
+                        if had_previous[name]:
+                            self.variables[name] = previous[name]
+                        else:
+                            self.variables.pop(name, None)
             self.maps[instruction.name] = values
+            self.variables[instruction.name] = values
             if self.app is not None:
                 self.app.maps = self.app.maps or {}
                 self.app.maps[instruction.name] = dict(values)
@@ -1135,6 +1246,9 @@ class Interpreter:
         if isinstance(expression, BinaryOp):
             left_val = self.evaluate(expression.left)
             right_val = self.evaluate(expression.right)
+            overloaded = self._try_operator_overload(expression.op, left_val, right_val)
+            if overloaded is not None:
+                return overloaded
             if expression.op == "+":
                 if isinstance(left_val, str) or isinstance(right_val, str):
                     return str(left_val) + str(right_val)
@@ -1176,6 +1290,25 @@ class Interpreter:
             raise AngisRuntimeError(f"Unknown unary operator {expression.op!r}.")
         if isinstance(expression, Lambda):
             return expression
+        if isinstance(expression, SetLiteral):
+            return {self.evaluate(v) for v in expression.values}
+        if isinstance(expression, TupleLiteral):
+            return tuple(self.evaluate(v) for v in expression.values)
+        if isinstance(expression, PythonEval):
+            py_globals = {
+                "__builtins__": __builtins__,
+                **{k: v for k, v in self.variables.items() if not k.startswith("_")},
+                **self.python_modules,
+            }
+            return eval(expression.expression, py_globals)
+        if isinstance(expression, TernaryExpr):
+            if self.evaluate(expression.condition):
+                return self.evaluate(expression.true_expr)
+            return self.evaluate(expression.false_expr)
+        if isinstance(expression, WalrusExpr):
+            value = self.evaluate(expression.value)
+            self.variables[expression.name] = value
+            return value
         if isinstance(expression, Comprehension):
             collection = self.evaluate(expression.collection)
             if not isinstance(collection, list):
@@ -1545,6 +1678,35 @@ class Interpreter:
 
         return generator()
 
+    def _try_operator_overload(self, operator: str, left: object, right: object) -> object | None:
+        for val in (left, right):
+            if isinstance(val, dict) and "__type__" in val:
+                type_name = val["__type__"]
+                key = (type_name, f"__op_{operator}__")
+                if key in self.object_methods:
+                    overload = self.object_methods[key]
+                    p1, p2 = overload.param1, overload.param2
+                    previous = {p1: self.variables.get(p1), p2: self.variables.get(p2)}
+                    had_prev = {p1: p1 in self.variables, p2: p2 in self.variables}
+                    try:
+                        self.variables[p1] = left
+                        self.variables[p2] = right
+                        for instr in overload.body:
+                            try:
+                                result = self._run_instruction(instr, [])
+                                if isinstance(instr, ReturnValue):
+                                    return result
+                            except _FunctionReturn as fr:
+                                return fr.value
+                        return None
+                    finally:
+                        for name in (p1, p2):
+                            if had_prev[name]:
+                                self.variables[name] = previous[name]
+                            else:
+                                self.variables.pop(name, None)
+        return None
+
     def _call_lambda(self, function: Lambda, args: list[Expression], captured: list[str]) -> object:
         params = function.params
         if len(args) != len(params):
@@ -1739,14 +1901,22 @@ class Interpreter:
     def _file_info(self, raw_path: str, x: int = 0, y: int = 0, z: int = 0) -> FileInfo:
         if not raw_path.strip():
             raise AngisRuntimeError("File path cannot be empty.")
-        path = Path(raw_path)
-        if not path.is_absolute() and not raw_path.startswith("~") and self.base_path is not None:
-            path = self.base_path / raw_path
-        path = path.expanduser()
-        try:
-            resolved = path.resolve(strict=True)
-        except OSError as exc:
-            raise AngisRuntimeError(f"Could not locate file {raw_path!r}.") from exc
+        candidates = [Path(raw_path).expanduser()]
+        if not candidates[0].is_absolute() and not raw_path.startswith("~"):
+            if self.base_path is not None:
+                candidates.append((self.base_path / raw_path).expanduser())
+            candidates.append((Path(__file__).parent.parent / raw_path).expanduser())
+        resolved = None
+        for candidate in candidates:
+            try:
+                r = candidate.resolve(strict=True)
+                if r.is_file():
+                    resolved = r
+                    break
+            except OSError:
+                continue
+        if resolved is None:
+            raise AngisRuntimeError(f"Could not locate file {raw_path!r}.")
         if not resolved.is_file():
             raise AngisRuntimeError(f"Path is not a file: {raw_path!r}.")
         size = resolved.stat().st_size
@@ -1861,6 +2031,8 @@ class Interpreter:
                 return _run_statistics_action(action, args)
             if module == "socket":
                 return _run_socket_action(action, args)
+            if module == "ai":
+                return _run_ai_action(action, args)
             if module == "capabilities":
                 return _stdlib_capabilities()
         except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
@@ -2020,6 +2192,7 @@ def _require_arg(args: dict[str, object], name: str) -> object:
 
 def _stdlib_capabilities() -> dict[str, list[str]]:
     return {
+        "ai": ["ask", "autocomplete", "categorize", "chat", "classify", "compare", "complete", "count_sentences", "count_words", "detect_language", "entities", "extract_entities", "extractive_summary", "flesch", "generate", "keywords", "language", "markov", "readability", "respond", "sentiment", "similar", "suggest", "summarize", "summary", "word_count"],
         "bitwise": ["and", "not", "or", "shift_left", "shift_right", "xor"],
         "capabilities": ["list"],
         "convert": ["to_number", "to_string"],
@@ -2694,6 +2867,266 @@ def _run_socket_action(action: str, args: dict[str, object]) -> object:
         sock.close()
         return True
     raise AngisRuntimeError(f"Socket action {action!r} is not available.")
+
+
+def _run_ai_action(action: str, args: dict[str, object]) -> object:
+    import math as _ai_math
+    import re as _ai_re
+    from collections import Counter as _ai_Counter
+    import random as _ai_random
+
+    _STOP_WORDS = {
+        "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
+        "of", "with", "by", "from", "as", "is", "was", "are", "were", "be",
+        "been", "being", "have", "has", "had", "do", "does", "did", "will",
+        "would", "could", "should", "may", "might", "shall", "can", "need",
+        "it", "its", "this", "that", "these", "those", "i", "you", "he", "she",
+        "we", "they", "me", "him", "her", "us", "them", "my", "your", "his",
+        "its", "our", "their", "not", "no", "nor", "so", "very", "too", "quite",
+        "just", "also", "only", "more", "most", "some", "any", "each", "every",
+        "all", "both", "few", "several", "much", "many", "such", "rather",
+        "what", "which", "who", "whom", "whose", "why", "how", "when", "where",
+        "if", "then", "than", "else", "about", "into", "over", "after", "before",
+        "between", "under", "above", "below", "out", "off", "up", "down",
+        "away", "back", "here", "there",
+    }
+
+    _POSITIVE = {
+        "good", "great", "excellent", "amazing", "wonderful", "fantastic",
+        "beautiful", "love", "happy", "joy", "delight", "perfect", "best",
+        "brilliant", "awesome", "incredible", "superb", "outstanding",
+        "terrific", "magnificent", "splendid", "positive", "success", "win",
+        "winner", "achievement", "celebrate", "pleasure", "friendly", "kind",
+        "helpful", "grateful", "thankful", "exciting", "thrilling",
+        "fascinating", "impressive", "remarkable", "nice", "lovely", "pretty",
+        "charming", "pleasant", "enjoyable", "fun", "entertaining",
+        "interesting", "welcome", "bright", "smart", "clever", "talented",
+        "skilled", "strong", "powerful", "elegant", "graceful", "vibrant",
+        "lively", "energetic", "peaceful", "calm", "serene", "tranquil",
+        "radiant", "prosperous", "abundant", "flourishing", "thriving",
+        "improving", "advancing", "progress", "benefit", "advantage",
+        "valuable", "precious", "treasure", "cherish", "adore", "admire",
+        "respect", "honor", "praise", "recommend", "approve", "agree",
+        "support", "embrace", "enhance", "enrich", "uplift",
+    }
+
+    _NEGATIVE = {
+        "bad", "terrible", "awful", "horrible", "dreadful", "atrocious",
+        "ugly", "hate", "angry", "sad", "miserable", "worst", "poor",
+        "nasty", "disgusting", "repulsive", "horrific", "appalling",
+        "shocking", "disturbing", "unpleasant", "disagreeable", "negative",
+        "failure", "fail", "lose", "loser", "defeat", "loss", "problem",
+        "issue", "trouble", "difficulty", "crisis", "disaster", "catastrophe",
+        "tragedy", "sorrow", "grief", "pain", "hurt", "harm", "damage",
+        "destroy", "ruin", "wreck", "break", "broken", "wrong", "error",
+        "mistake", "flaw", "defect", "corrupt", "dangerous", "risky",
+        "unsafe", "threat", "danger", "fear", "scared", "afraid", "terrified",
+        "horrified", "anxious", "worried", "upset", "distressed",
+        "frustrated", "annoyed", "irritated", "mad", "furious", "enraged",
+        "violent", "aggressive", "hostile", "cruel", "mean", "rude",
+        "selfish", "greedy", "lazy", "stupid", "dumb", "foolish", "weird",
+        "strange", "bizarre", "odd", "unusual", "suspicious", "dirty",
+        "filthy", "polluted", "toxic", "poisonous", "deadly", "fatal",
+        "lethal", "destructive", "harmful", "painful", "suffering",
+        "struggle", "conflict", "fight", "violence", "abuse", "attack",
+        "crime", "criminal", "illegal", "unlawful", "restricted", "missing",
+        "lost", "empty", "hollow", "useless", "worthless", "hopeless",
+        "helpless", "weak", "fragile", "sick", "ill", "unhealthy",
+    }
+
+    text = str(_require_arg(args, "text")) if "text" in args else ""
+
+    if action in {"keywords", "keywords_extract", "extract_keywords"}:
+        words = _ai_re.findall(r"[a-zA-Z]+", text.lower())
+        words = [w for w in words if w not in _STOP_WORDS and len(w) > 2]
+        freq = _ai_Counter(words)
+        total = sum(freq.values()) or 1
+        scored = [(w, round(c / total, 4)) for w, c in freq.most_common(20)]
+        limit = int(args.get("limit", args.get("count", 10)))
+        return scored[:limit]
+
+    if action in {"sentiment", "sentiment_score", "analyze_sentiment"}:
+        words = _ai_re.findall(r"[a-zA-Z]+", text.lower())
+        pos = sum(1 for w in words if w in _POSITIVE)
+        neg = sum(1 for w in words if w in _NEGATIVE)
+        total = pos + neg
+        score = 0.0
+        if total > 0:
+            score = (pos - neg) / total
+        label = "positive" if score > 0.15 else "negative" if score < -0.15 else "neutral"
+        return {"score": round(score, 4), "label": label, "positive": pos, "negative": neg}
+
+    if action in {"similar", "similarity", "compare"}:
+        text1 = str(_require_arg(args, "text1"))
+        text2 = str(_require_arg(args, "text2"))
+        set1 = set(_ai_re.findall(r"[a-zA-Z]+", text1.lower()))
+        set2 = set(_ai_re.findall(r"[a-zA-Z]+", text2.lower()))
+        if not set1 or not set2:
+            return {"jaccard": 0.0, "cosine": 0.0}
+        jaccard = len(set1 & set2) / len(set1 | set2)
+        freq1 = _ai_Counter(_ai_re.findall(r"[a-zA-Z]+", text1.lower()))
+        freq2 = _ai_Counter(_ai_re.findall(r"[a-zA-Z]+", text2.lower()))
+        all_w = set(freq1) | set(freq2)
+        dot = sum(freq1[w] * freq2[w] for w in all_w)
+        mag1 = _ai_math.sqrt(sum(freq1[w]**2 for w in all_w))
+        mag2 = _ai_math.sqrt(sum(freq2[w]**2 for w in all_w))
+        cosine = dot / (mag1 * mag2) if mag1 * mag2 > 0 else 0.0
+        return {"jaccard": round(jaccard, 4), "cosine": round(cosine, 4)}
+
+    if action in {"summarize", "summary", "extractive_summary"}:
+        sentences = _ai_re.split(r'(?<=[.!?])\s+', text.strip())
+        if len(sentences) <= 1:
+            return text
+        words = _ai_re.findall(r"[a-zA-Z]+", text.lower())
+        word_freq = _ai_Counter(w for w in words if w not in _STOP_WORDS and len(w) > 2)
+        max_freq = max(word_freq.values()) if word_freq else 1
+        def _score_sentence(s):
+            s_words = _ai_re.findall(r"[a-zA-Z]+", s.lower())
+            if not s_words:
+                return 0
+            return sum(word_freq.get(w, 0) / max_freq for w in s_words if w in word_freq) / len(s_words)
+        scored = [(s, _score_sentence(s)) for s in sentences]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        count = min(int(args.get("sentences", args.get("count", 3))), len(scored))
+        top = scored[:count]
+        top.sort(key=lambda x: text.index(x[0]))
+        return " ".join(s for s, _ in top)
+
+    if action in {"count_words", "word_count"}:
+        return len(_ai_re.findall(r"[a-zA-Z]+", text))
+
+    if action in {"count_sentences", "sentence_count"}:
+        return len([s for s in _ai_re.split(r'(?<=[.!?])\s+', text.strip()) if s.strip()])
+
+    if action in {"count_syllables", "syllable_count"}:
+        def _syllables(w):
+            if len(w) <= 3:
+                return 1
+            count = 0
+            prev_vowel = False
+            for ch in w.lower():
+                is_vowel = ch in "aeiou"
+                if is_vowel and not prev_vowel:
+                    count += 1
+                prev_vowel = is_vowel
+            return max(1, count)
+        words = _ai_re.findall(r"[a-zA-Z]+", text.lower())
+        return sum(_syllables(w) for w in words) if words else 0
+
+    if action in {"readability", "readability_score", "flesch"}:
+        sentences = [s for s in _ai_re.split(r'(?<=[.!?])\s+', text.strip()) if s.strip()]
+        words = _ai_re.findall(r"[a-zA-Z]+", text.lower())
+        num_words = len(words)
+        num_sentences = len(sentences)
+        if num_words == 0 or num_sentences == 0:
+            return {"score": 0.0, "label": "unknown"}
+        def _syllables(w):
+            if len(w) <= 3:
+                return 1
+            count = 0
+            prev_vowel = False
+            for ch in w.lower():
+                is_vowel = ch in "aeiou"
+                if is_vowel and not prev_vowel:
+                    count += 1
+                prev_vowel = is_vowel
+            return max(1, count)
+        num_syllables = sum(_syllables(w) for w in words)
+        score = 206.835 - 1.015 * (num_words / num_sentences) - 84.6 * (num_syllables / num_words)
+        label = "very easy" if score >= 90 else "easy" if score >= 80 else "fairly easy" if score >= 70 else "standard" if score >= 60 else "fairly difficult" if score >= 50 else "difficult" if score >= 30 else "very difficult"
+        return {"score": round(score, 2), "label": label}
+
+    if action in {"detect_language", "language"}:
+        _LANG_SIGS = {
+            "english": {"the", "and", "is", "are", "was", "were", "have", "has", "been", "will", "would", "could", "should", "this", "that", "these", "those", "with", "from", "they", "what", "which", "their", "there", "about", "people", "other", "after", "first", "every"},
+            "spanish": {"el", "la", "los", "las", "que", "es", "por", "con", "una", "para", "del", "como", "mas", "pero", "sus", "esta", "este", "entre", "tiene", "puede", "todo", "tambien", "era", "anos", "otro", "sobre", "ella", "contra", "antes", "nunca", "luego", "bien", "poco", "casa", "hombre"},
+            "french": {"le", "la", "les", "des", "que", "est", "pas", "plus", "avec", "dans", "une", "pour", "sur", "tout", "fait", "etre", "avoir", "mais", "leur", "sont", "cette", "aussi", "entre", "temps", "peut", "bien", "donc", "monde", "autre", "partie", "meme", "tant", "comme", "dont", "apres", "alors"},
+            "german": {"der", "die", "das", "und", "ist", "nicht", "sich", "auch", "auf", "fur", "mit", "den", "dem", "des", "ein", "eine", "einen", "einer", "sind", "oder", "aber", "werden", "waren", "ihr", "ihre", "seine", "seiner", "nur", "noch", "nach", "durch", "uber", "kann", "dann", "soll", "doch"},
+            "italian": {"il", "la", "gli", "le", "che", "del", "della", "per", "con", "una", "sono", "non", "piu", "ma", "era", "come", "dei", "delle", "dagli", "dalle", "anche", "puo", "fare", "vita", "anno", "casa", "uomo", "parte", "mondo", "dopo", "sempre", "prima", "essere", "avere", "detto"},
+            "portuguese": {"o", "a", "os", "as", "que", "com", "para", "por", "mais", "mas", "era", "sao", "como", "uma", "dos", "das", "pode", "foi", "ser", "anos", "vida", "casa", "homem", "parte", "sobre", "depois", "contra", "durante", "sempre", "entre", "ainda", "assim"},
+            "dutch": {"de", "het", "een", "van", "en", "is", "met", "dat", "niet", "ook", "hij", "zijn", "voor", "aan", "wordt", "werd", "heeft", "maar", "nog", "dan", "zou", "wel", "veel", "naar", "door", "over", "hun", "hem", "haar", "die", "deze", "dit", "al", "als", "bij", "uit", "om"},
+        }
+        words = _ai_re.findall(r"[a-zA-Z]+", text.lower())
+        if not words:
+            return {"language": "unknown", "confidence": 0.0}
+        scores = {lang: sum(1 for w in words if w in sig) / max(len(words), 1) for lang, sig in _LANG_SIGS.items()}
+        best = max(scores, key=scores.get)
+        return {"language": best, "confidence": round(scores[best], 4)}
+
+    if action in {"classify", "classify_text", "categorize"}:
+        cats = args.get("categories", args.get("category", {}))
+        if isinstance(cats, dict):
+            categories = cats
+        elif isinstance(cats, list):
+            categories = {c: [c] for c in cats}
+        else:
+            raise AngisRuntimeError("AI classify needs a dict of categories with keyword lists.")
+        words = set(_ai_re.findall(r"[a-zA-Z]+", text.lower()))
+        scores = {}
+        for cat, keywords in categories.items():
+            kw = {k.lower() for k in (keywords if isinstance(keywords, list) else [keywords])}
+            overlap = len(words & kw)
+            scores[cat] = round(overlap / max(len(kw), 1), 4) if kw else 0
+        if not scores:
+            return {"category": "unknown", "score": 0.0}
+        best = max(scores, key=scores.get)
+        return {"category": best, "score": scores[best]}
+
+    if action in {"generate", "generate_text", "markov"}:
+        if not text.strip():
+            raise AngisRuntimeError("AI generate needs text to learn from.")
+        order = int(args.get("order", args.get("n", 2)))
+        length = int(args.get("length", args.get("words", 50)))
+        words = _ai_re.findall(r"[a-zA-Z]+", text.lower())
+        if len(words) <= order:
+            return text
+        model = {}
+        for i in range(len(words) - order):
+            key = tuple(words[i:i + order])
+            model.setdefault(key, []).append(words[i + order])
+        seed_idx = _ai_random.randint(0, len(words) - order - 1)
+        seed = tuple(words[seed_idx:seed_idx + order])
+        result = list(seed)
+        for _ in range(length - order):
+            if seed not in model:
+                break
+            result.append(_ai_random.choice(model[seed]))
+            seed = tuple(result[-order:])
+        return " ".join(result)
+
+    if action in {"suggest", "autocomplete", "complete"}:
+        prefix = str(_require_arg(args, "prefix")).lower()
+        if not text.strip():
+            return []
+        words = sorted({w for w in _ai_re.findall(r"[a-zA-Z]+", text.lower()) if w.startswith(prefix) and w != prefix})
+        return words[:int(args.get("limit", args.get("count", 10)))]
+
+    if action in {"entity", "entities", "extract_entities"}:
+        return {
+            "emails": _ai_re.findall(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", text),
+            "urls": _ai_re.findall(r"https?://[^\s]+", text),
+            "numbers": [float(n) if "." in n else int(n) for n in _ai_re.findall(r"\b\d+(?:\.\d+)?\b", text)],
+            "mentions": _ai_re.findall(r"@[a-zA-Z0-9_]+", text),
+            "hashtags": _ai_re.findall(r"#[a-zA-Z0-9_]+", text),
+        }
+
+    if action in {"ask", "chat", "respond"}:
+        q = str(_require_arg(args, "question" if "question" in args else "text")).lower().strip()
+        if any(g in q for g in {"hello", "hi", "hey", "greetings", "howdy"}):
+            return "Hello! I'm Angis AI. How can I help you?"
+        if any(f in q for f in {"bye", "goodbye", "farewell", "later"}):
+            return "Goodbye! Have a great day!"
+        if any(t in q for t in {"thanks", "thank you", "thx"}):
+            return "You're welcome!"
+        if "how are you" in q:
+            return "I'm doing great, thanks!"
+        if "your name" in q or "who are you" in q:
+            return "I'm Angis AI, your local natural language assistant."
+        if "help" in q or "what can" in q:
+            return "I can summarize text, detect sentiment, extract keywords, classify content, compare texts, count words, generate text, and more!"
+        return "I'm here to help with text analysis. Try keywords, sentiment, summarize, or classify!"
+
+    raise AngisRuntimeError(f"AI action {action!r} is not available.")
 
 
 def _default_loading_asset(name: str) -> Path:

@@ -8,6 +8,10 @@ import textwrap
 
 from .errors import AngisError, AngisSyntaxError
 from .intents import match_intent, parse_atom, parse_expression, parse_text_value
+import dataclasses
+
+from .lang import ENGLISH, SPANISH, FRENCH, GERMAN, get_language, set_language as _set_lang
+
 from .ir import (
     Break,
     Condition,
@@ -22,25 +26,33 @@ from .ir import (
     Lambda,
     LogicalCondition,
     MapOver,
+    MatchBlock,
     ObjectMethodCall,
     ObjectMethodDef,
     RangeExpr,
     ReduceItems,
     RepeatBlock,
     ReturnValue,
+    SetVar,
     SwitchBlock,
     TryBlock,
     Spawn,
     Await,
     AsyncFunctionDef,
+    AsyncForBlock,
+    AsyncWithBlock,
     AwaitExpr,
+    PythonEval,
+    PythonExec,
     PythonImport,
     WatchFile,
     NativeGUI,
+    BlueprintInitDef,
     WhileBlock,
     WithBlock,
     YieldValue,
     ErrorDef,
+    OperatorOverloadDef,
 )
 
 
@@ -126,17 +138,27 @@ def _expand_include_directory(directory: Path, seen: set[Path]) -> list[str]:
 def _parse_block(lines: list[SourceLine], start: int, indent: int, command_templates: list[CommandTemplate]) -> tuple[list[object], int]:
     instructions: list[object] = []
     index = start
+    pending_decorators: list[str] = []
     while index < len(lines):
         line = lines[index]
         if line.indent < indent:
             break
         if line.indent > indent:
             raise AngisSyntaxError(f"Line {line.number}: Unexpected indentation.")
+        text_stripped = line.text.strip()
+        decorator_match = re.fullmatch(r"@(?P<name>[^\W\d]\w*)", text_stripped)
+        if decorator_match:
+            pending_decorators.append(decorator_match.group("name"))
+            index += 1
+            continue
         try:
             if _is_block_header(line.text):
                 child_indent = _next_indent(lines, index, indent)
                 body, next_index = _parse_block(lines, index + 1, child_indent, command_templates)
                 instruction = _parse_block_header(line, body)
+                if pending_decorators and isinstance(instruction, (FunctionDef, AsyncFunctionDef)):
+                    instruction = dataclasses.replace(instruction, decorators=list(pending_decorators))
+                pending_decorators.clear()
                 _register_command_template(line.text, instruction, command_templates)
                 if isinstance(instruction, IfBlock) and next_index < len(lines):
                     maybe_else = lines[next_index]
@@ -153,6 +175,15 @@ def _parse_block(lines: list[SourceLine], start: int, indent: int, command_templ
                 if isinstance(instruction, SwitchBlock):
                     cases, default_body = _extract_switch_cases(body)
                     instruction = SwitchBlock(
+                        condition=instruction.condition,
+                        cases=cases,
+                        default_body=default_body,
+                        source=instruction.source,
+                        confidence=instruction.confidence,
+                    )
+                if isinstance(instruction, MatchBlock):
+                    cases, default_body = _extract_switch_cases(body)
+                    instruction = MatchBlock(
                         condition=instruction.condition,
                         cases=cases,
                         default_body=default_body,
@@ -243,8 +274,59 @@ def _next_indent(lines: list[SourceLine], index: int, parent_indent: int) -> int
     return lines[index + 1].indent
 
 
+def _translate(phrase: str) -> str:
+    lang = get_language()
+    if lang.code == "en":
+        return phrase
+    from .lang import ENGLISH as _ENG
+    result = phrase
+    mappings = [
+        (lang._p, _ENG._p), (lang._s, _ENG._s), (lang._m, _ENG._m),
+        (lang._a, _ENG._a), (lang._g, _ENG._g), (lang._f, _ENG._f),
+        (lang.to, _ENG.to), (lang.equal, _ENG.equal),
+        (lang.for_p, _ENG.for_p), (lang.in_p, _ENG.in_p), (lang.as_p, _ENG.as_p),
+        (lang.true, _ENG.true), (lang.false, _ENG.false),
+        (lang.yes, _ENG.yes), (lang.no, _ENG.no),
+        (lang.for_each, _ENG.for_each), (lang.teaching, _ENG.teaching),
+        ({lang.if_w}, {_ENG.if_w}), ({lang.else_w}, {_ENG.else_w}),
+        ({lang.and_w}, {_ENG.and_w}), ({lang.or_w}, {_ENG.or_w}), ({lang.not_w}, {_ENG.not_w}),
+        ({lang.switch}, {_ENG.switch}), ({lang.match}, {_ENG.match}),
+        ({lang.case, lang.when}, {_ENG.case, _ENG.when}),
+        ({lang.default, lang.otherwise}, {_ENG.default, _ENG.otherwise}),
+        ({lang.define}, {_ENG.define}), ({lang.function}, {_ENG.function}),
+        ({lang.return_w}, {_ENG.return_w}), ({lang.call}, {_ENG.call}),
+        ({lang.blueprint}, {_ENG.blueprint}), ({lang.create}, {_ENG.create}),
+        ({lang.named}, {_ENG.named}), ({lang.method}, {_ENG.method}),
+        ({lang.phrase}, {_ENG.phrase}), ({lang.command}, {_ENG.command}),
+        ({lang.means}, {_ENG.means}), ({lang.repeat}, {_ENG.repeat}),
+        ({lang.times}, {_ENG.times}), ({lang.while_w}, {_ENG.while_w}),
+        ({lang.lambda_w}, {_ENG.lambda_w}), ({lang.arrow}, {_ENG.arrow}),
+        ({lang.fn}, {_ENG.fn}), ({lang.into}, {_ENG.into}),
+        ({lang.try_w}, {_ENG.try_w}), ({lang.except_w, lang.catch}, {_ENG.except_w, _ENG.catch}),
+        ({lang.finally_w}, {_ENG.finally_w}), ({lang.with_w}, {_ENG.with_w}),
+        ({lang.async_w}, {_ENG.async_w}),
+        ({lang.spawn, lang.background}, {_ENG.spawn, _ENG.background}),
+        ({lang.await_w}, {_ENG.await_w}), ({lang.import_w}, {_ENG.import_w}),
+        ({lang.python}, {_ENG.python}), ({lang.include}, {_ENG.include}),
+        ({lang.library}, {_ENG.library}), ({lang.pack}, {_ENG.pack}),
+        ({lang.use}, {_ENG.use}),
+        ({lang.show, lang.say, lang.display, lang.tell}, {_ENG.show, _ENG.say, _ENG.display, _ENG.tell}),
+        ({lang.ask}, {_ENG.ask}),
+        ({lang.input, lang.prompt, lang.read}, {_ENG.input, _ENG.prompt, _ENG.read}),
+        ({lang.raise_w, lang.error_w}, {_ENG.raise_w, _ENG.error_w}),
+        ({lang.assert_w}, {_ENG.assert_w}), ({lang.debug}, {_ENG.debug}),
+        ({lang.all_w}, {_ENG.all_w}), ({lang.language}, {_ENG.language}),
+    ]
+    for from_set, to_set in mappings:
+        for fw in sorted(from_set, key=len, reverse=True):
+            for tw in to_set:
+                result = re.sub(rf"(?<!\w){re.escape(fw)}(?!\w)", tw, result, flags=re.I)
+    return result
+
+
 def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) -> object:
-    normalized = _strip_trailing_period(line.text)
+    translated = _translate(line.text)
+    normalized = _strip_trailing_period(translated)
     inline_phrase = _parse_inline_phrase_definition(normalized, line, command_templates)
     if inline_phrase is not None:
         return inline_phrase
@@ -270,7 +352,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
     if continue_match:
         return Continue(source=line.text, confidence=0.99)
     map_over_match = re.fullmatch(
-        r"(?:map|transform)\s+(?P<expr>.+?)\s+(?:over|across)\s+(?P<collection>.+?)\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*)",
+        r"(?:map|transform)\s+(?P<expr>.+?)\s+(?:over|across)\s+(?P<collection>.+?)\s+as\s+(?P<result>[^\W\d]\w*)",
         normalized, re.I,
     )
     if map_over_match:
@@ -281,7 +363,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
             source=line.text, confidence=0.99,
         )
     filter_match = re.fullmatch(
-        r"(?:filter|keep)\s+(?P<condition>.+?)\s+(?:from|in)\s+(?P<collection>.+?)\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*)",
+        r"(?:filter|keep)\s+(?P<condition>.+?)\s+(?:from|in)\s+(?P<collection>.+?)\s+as\s+(?P<result>[^\W\d]\w*)",
         normalized, re.I,
     )
     if filter_match:
@@ -292,7 +374,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
             source=line.text, confidence=0.99,
         )
     reduce_match = re.fullmatch(
-        r"(?:reduce|fold)\s+(?P<expr>.+?)\s+(?:over|across)\s+(?P<collection>.+?)\s+(?:starting|with\s+initial)\s+(?P<initial>.+?)\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*)",
+        r"(?:reduce|fold)\s+(?P<expr>.+?)\s+(?:over|across)\s+(?P<collection>.+?)\s+(?:starting|with\s+initial)\s+(?P<initial>.+?)\s+as\s+(?P<result>[^\W\d]\w*)",
         normalized, re.I,
     )
     if reduce_match:
@@ -307,7 +389,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
     if command_call is not None:
         return command_call
     method_call_match = re.fullmatch(
-        r"(?:call|run)\s*,?\s*(?P<object>[A-Za-z_][A-Za-z0-9_]*)\.(?P<method>[A-Za-z_][A-Za-z0-9_.]*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*))?",
+        r"(?:call|run)\s*,?\s*(?P<object>[^\W\d]\w*)\.(?P<method>[^\W\d]\w*(?:\.[^\W\d]\w*)*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[^\W\d]\w*(?:\s*,\s*[^\W\d]\w*)*))?",
         normalized,
         re.I,
     )
@@ -325,7 +407,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
             confidence=0.99,
         )
     call_match = re.fullmatch(
-        r"(?:call|run)\s*,?\s*(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_]*)*))?",
+        r"(?:call|run)\s*,?\s*(?P<name>[^\W\d]\w*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[^\W\d]\w*(?:\s*,\s*[^\W\d]\w*)*))?",
         normalized,
         re.I,
     )
@@ -344,7 +426,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
     template_command_call = _parse_template_command_call(normalized, line.text, command_templates)
     if template_command_call is not None:
         return template_command_call
-    yield_match = re.fullmatch(r"yield\s*,?\s*(?P<value>.+?)(?:\s+as\s+(?P<send_var>[A-Za-z_][A-Za-z0-9_]*))?", normalized, re.I)
+    yield_match = re.fullmatch(r"yield\s*,?\s*(?P<value>.+?)(?:\s+as\s+(?P<send_var>[^\W\d]\w*))?", normalized, re.I)
     if yield_match:
         return YieldValue(
             value=parse_text_value(yield_match.group("value")),
@@ -354,7 +436,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
         )
 
     spawn_match = re.fullmatch(
-        r"(?:spawn|background|async)\s+(?:call\s+)?(?P<name>[A-Za-z_][A-Za-z0-9_]*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*))?",
+        r"(?:spawn|background|async)\s+(?:call\s+)?(?P<name>[^\W\d]\w*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[^\W\d]\w*))?",
         normalized,
         re.I,
     )
@@ -368,7 +450,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
         )
 
     await_match = re.fullmatch(
-        r"(?:await|wait\s+for)\s+(?P<target>[A-Za-z_][A-Za-z0-9_]*)(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*))?",
+        r"(?:await|wait\s+for)\s+(?P<target>[^\W\d]\w*)(?:\s+as\s+(?P<result>[^\W\d]\w*))?",
         normalized,
         re.I,
     )
@@ -381,7 +463,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
         )
 
     py_import_match = re.fullmatch(
-        r"(?:import|use)\s+python\s+(?P<module>[A-Za-z_][A-Za-z0-9_.]*)(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*))?(?:\s+with\s+names\s+(?P<names>.+))?",
+        r"(?:import|use)\s+python\s+(?P<module>[^\W\d]\w*(?:\.[^\W\d]\w*)*)(?:\s+as\s+(?P<result>[^\W\d]\w*))?(?:\s+with\s+names\s+(?P<names>.+))?",
         normalized,
         re.I,
     )
@@ -396,7 +478,32 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
             confidence=0.99,
         )
 
-    await_expr_match = re.fullmatch(r"await\s+(?P<value>.+?)\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*)", normalized, re.I)
+    py_exec_match = re.fullmatch(
+        r"(?:run|exec|execute)\s+python\s*[::,]\s*(?P<code>.+)",
+        normalized,
+        re.I,
+    )
+    if py_exec_match:
+        return PythonExec(
+            code=py_exec_match.group("code"),
+            source=line.text,
+            confidence=0.99,
+        )
+
+    py_eval_match = re.fullmatch(
+        r"(?:eval\s+python|python\s+eval)\s+(?P<expr>.+?)\s+as\s+(?P<result>[^\W\d]\w*)",
+        normalized,
+        re.I,
+    )
+    if py_eval_match:
+        return SetVar(
+            name=py_eval_match.group("result"),
+            value=PythonEval(expression=py_eval_match.group("expr")),
+            source=line.text,
+            confidence=0.99,
+        )
+
+    await_expr_match = re.fullmatch(r"await\s+(?P<value>.+?)\s+as\s+(?P<result>[^\W\d]\w*)", normalized, re.I)
     if await_expr_match:
         return AwaitExpr(
             value=parse_text_value(await_expr_match.group("value")),
@@ -410,7 +517,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
         return WatchFile(path=watch_match.group("path").strip(), source=line.text, confidence=0.99)
 
     native_gui_match = re.fullmatch(
-        r"(?:use|create|open)\s+(?:native\s+)?gui\s+(?P<action>[A-Za-z_]+)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*))?",
+        r"(?:use|create|open)\s+(?:native\s+)?gui\s+(?P<action>[^\W\d]\w+)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[^\W\d]\w*))?",
         normalized,
         re.I,
     )
@@ -431,12 +538,26 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
             confidence=0.99,
         )
 
-    error_def_match = re.fullmatch(r"(?:define\s+error|error)\s*,?\s*(?P<name>[A-Za-z_][A-Za-z0-9_]*)", normalized, re.I)
+    error_def_match = re.fullmatch(r"(?:define\s+error|error)\s*,?\s*(?P<name>[^\W\d]\w*)", normalized, re.I)
     if error_def_match:
         return ErrorDef(name=error_def_match.group("name"), source=line.text, confidence=0.99)
 
+    lang_match = re.fullmatch(
+        r"(?:set|use|change)\s+language\s+(?:to\s+)?(?P<lang>[^\W\d]\w+)",
+        normalized, re.I,
+    )
+    if lang_match:
+        from .lang import set_language as _sl, get_supported_languages
+        lang_name = lang_match.group("lang").lower()
+        for lp in get_supported_languages():
+            if lang_name == lp["code"] or lang_name == lp["name"].lower():
+                _sl(lp["code"])
+                from .ir import Print
+                return Print(value=f"Language set to {lp['name']}", source=line.text, confidence=0.99)
+        raise AngisSyntaxError(f"Unsupported language: {lang_name!r}. Try: en, es, fr, de")
+
     try:
-        return match_intent(line.text)
+        return match_intent(translated)
     except AngisError:
         direct_command_call = _parse_direct_command_call(normalized, line.text)
         if direct_command_call is not None:
@@ -445,8 +566,8 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
 
 
 def _parse_block_header(line: SourceLine, body: list[object]) -> object:
-    header = _strip_trailing_period(line.text[:-1].strip())
-    if _is_else_header(line.text):
+    header = _translate(_strip_trailing_period(line.text[:-1].strip()))
+    if _is_else_header(header + ":"):
         raise AngisSyntaxError("Else must come directly after an If block.")
 
     if_match = re.fullmatch(r"if\s*,?\s*(?P<condition>.+?)(?:\s+then)?", header, re.I)
@@ -495,7 +616,7 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
         )
 
     range_for_match = re.fullmatch(
-        r"(?:for\s+each|foreach|for\s+every|for)\s*,?\s*(?P<item>[A-Za-z_][A-Za-z0-9_]*)\s+in\s+range\s+(?:from\s+)?(?P<start>.+?)\s+to\s+(?P<end>.+)",
+        r"(?:for\s+each|foreach|for\s+every|for)\s*,?\s*(?P<item>[^\W\d]\w*)\s+in\s+range\s+(?:from\s+)?(?P<start>.+?)\s+to\s+(?P<end>.+)",
         header,
         re.I,
     )
@@ -512,7 +633,7 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
         )
 
     for_each_match = re.fullmatch(
-        r"(?:for\s+each|foreach|for\s+every|for\s+each\s+one|for\s+every\s+one)\s*,?\s*(?P<item>[A-Za-z_][A-Za-z0-9_]*)\s+(?:in|inside|from)\s+(?P<collection>.+)",
+        r"(?:for\s+each|foreach|for\s+every|for\s+each\s+one|for\s+every\s+one)\s*,?\s*(?P<item>[^\W\d]\w*)\s+(?:in|inside|from)\s+(?P<collection>.+)",
         header,
         re.I,
     )
@@ -526,7 +647,7 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
         )
 
     plain_for_match = re.fullmatch(
-        r"for\s*,?\s*(?P<item>[A-Za-z_][A-Za-z0-9_]*)\s+in\s+(?P<collection>.+)",
+        r"for\s*,?\s*(?P<item>[^\W\d]\w*)\s+in\s+(?P<collection>.+)",
         header,
         re.I,
     )
@@ -565,7 +686,7 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
         )
 
     async_match = re.fullmatch(
-        r"(?:define\s+)?async\s+(?:function\s+)?(?P<name>[A-Za-z_][A-Za-z0-9_]*)"
+        r"(?:define\s+)?async\s+(?:function\s+)?(?P<name>[^\W\d]\w*)"
         r"(?:\s+with\s+(?P<params>.+?))?"
         r"(?:\s*->\s*(?P<return_type>text|string|number|int|decimal|float|bool|boolean|list|map|dict|any))?",
         header,
@@ -584,7 +705,7 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
         )
 
     function_match = re.fullmatch(
-        r"(?:define|function)\s*,?\s*(?P<name>[A-Za-z_][A-Za-z0-9_]*)"
+        r"(?:define|function)\s*,?\s*(?P<name>[^\W\d]\w*)"
         r"(?:\s+with\s+(?P<params>.+?))?"
         r"(?:\s*->\s*(?P<return_type>text|string|number|int|decimal|float|bool|boolean|list|map|dict|any))?",
         header,
@@ -603,7 +724,7 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
         )
 
     method_match = re.fullmatch(
-        r"(?:define\s+method|method)\s*,?\s*(?P<method>[A-Za-z_][A-Za-z0-9_]*)(?:\s+for\s+(?P<object>[A-Za-z_][A-Za-z0-9_]*))"
+        r"(?:define\s+method|method)\s*,?\s*(?P<method>[^\W\d]\w*)(?:\s+for\s+(?P<object>[^\W\d]\w*))"
         r"(?:\s+with\s+(?P<params>.+?))?"
         r"(?:\s*->\s*(?P<return_type>text|string|number|int|decimal|float|bool|boolean|list|map|dict|any))?",
         header,
@@ -622,7 +743,28 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
             confidence=0.99,
         )
 
-    key_match = re.fullmatch(r"(?:when|on|if)\s+(?:(?:key\s+)?(?P<name>[A-Za-z0-9_]+)\s+(?:is\s+)?(?:pressed|hit|typed|released)|(?P<named>space|enter|up|down|left|right|w|a|s|d|escape|shift|ctrl|alt)\s+(?:key\s+)?(?:pressed|hit|typed|released))", header, re.I)
+    overload_match = re.fullmatch(
+        r"(?:define\s+)?(?P<operator>[+\-*/%]|==|!=|<=|>=|<>)\s+(?:for|on)\s+(?P<blueprint>[^\W\d]\w*)"
+        r"(?:\s+(?:with|taking)\s+(?P<param1>[^\W\d]\w*)\s*,\s*(?P<param2>[^\W\d]\w*))?",
+        header,
+        re.I,
+    )
+    if overload_match:
+        op_map = {"<>": "!="}
+        operator = op_map.get(overload_match.group("operator"), overload_match.group("operator"))
+        p1 = overload_match.group("param1") or "left"
+        p2 = overload_match.group("param2") or "right"
+        return OperatorOverloadDef(
+            operator=operator,
+            blueprint_name=overload_match.group("blueprint"),
+            param1=p1,
+            param2=p2,
+            body=body,
+            source=line.text,
+            confidence=0.99,
+        )
+
+    key_match = re.fullmatch(r"(?:when|on|if)\s+(?:(?:key\s+)?(?P<name>\w+)\s+(?:is\s+)?(?:pressed|hit|typed|released)|(?P<named>space|enter|up|down|left|right|w|a|s|d|escape|shift|ctrl|alt)\s+(?:key\s+)?(?:pressed|hit|typed|released))", header, re.I)
     if key_match:
         key_name = (key_match.group("named") or key_match.group("name")).lower()
         kind = "key"
@@ -640,7 +782,7 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
         normalized_name = {"clicks": "clicked", "click": "clicked", "tap": "clicked", "tapped": "clicked", "moves": "moved", "presses": "pressed"}.get(name, name)
         return EventBlock(kind="mouse", name=normalized_name, body=body, source=line.text, confidence=0.99)
 
-    button_match = re.fullmatch(r"when\s+(?:button\s+)?(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s+(?:is\s+)?(?:clicked|pressed|tapped)", header, re.I)
+    button_match = re.fullmatch(r"when\s+(?:button\s+)?(?P<name>[^\W\d]\w*)\s+(?:is\s+)?(?:clicked|pressed|tapped)", header, re.I)
     if button_match:
         return EventBlock(kind="button", name=button_match.group("name"), body=body, source=line.text, confidence=0.99)
 
@@ -649,7 +791,7 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
         return EventBlock(kind="timer", name=every_match.group("name"), body=body, source=line.text, confidence=0.99)
 
     collision_match = re.fullmatch(
-        r"(?:when|on|if)\s+(?P<left>[A-Za-z_][A-Za-z0-9_]*)\s+(?:touches|hits|collides\s+with|runs\s+into|bumps\s+into|hits\s+against)\s+(?P<right>[A-Za-z_][A-Za-z0-9_ ]+)",
+        r"(?:when|on|if)\s+(?P<left>[^\W\d]\w*)\s+(?:touches|hits|collides\s+with|runs\s+into|bumps\s+into|hits\s+against)\s+(?P<right>[^\W]\w[\w ]*)",
         header,
         re.I,
     )
@@ -662,7 +804,16 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
             confidence=0.99,
         )
 
-    switch_match = re.fullmatch(r"(?:switch|match)\s*,?\s*(?P<condition>.+)", header, re.I)
+    match_match = re.fullmatch(r"match\s*,?\s*(?P<condition>.+)", header, re.I)
+    if match_match:
+        return MatchBlock(
+            condition=parse_expression(match_match.group("condition")),
+            cases=[],
+            source=line.text,
+            confidence=0.99,
+        )
+
+    switch_match = re.fullmatch(r"switch\s*,?\s*(?P<condition>.+)", header, re.I)
     if switch_match:
         return SwitchBlock(
             condition=parse_expression(switch_match.group("condition")),
@@ -675,7 +826,7 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
     if with_match:
         resource_text = with_match.group("resource").strip()
         var_name = ""
-        as_match = re.fullmatch(r"(?P<expr>.+?)\s+as\s+(?P<var>[A-Za-z_][A-Za-z0-9_]*)", resource_text, re.I)
+        as_match = re.fullmatch(r"(?P<expr>.+?)\s+as\s+(?P<var>[^\W\d]\w*)", resource_text, re.I)
         if as_match:
             resource_text = as_match.group("expr").strip()
             var_name = as_match.group("var")
@@ -708,6 +859,61 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
     if default_match:
         return _DefaultBlock(body=body)
 
+    async_for_match = re.fullmatch(
+        r"(?:async|non.blocking)\s+(?:for\s+each|foreach|for)\s*,?\s*(?P<item>[^\W\d]\w*)\s+(?:in|inside|from)\s+(?P<collection>.+)",
+        header,
+        re.I,
+    )
+    if async_for_match:
+        return AsyncForBlock(
+            item_name=async_for_match.group("item"),
+            collection=parse_expression(async_for_match.group("collection")),
+            body=body,
+            source=line.text,
+            confidence=0.99,
+        )
+
+    async_with_match = re.fullmatch(
+        r"(?:async|non.blocking)\s+with\s+,?\s*(?P<resource>.+)",
+        header,
+        re.I,
+    )
+    if async_with_match:
+        resource_text = async_with_match.group("resource").strip()
+        var_name = ""
+        as_match = re.fullmatch(r"(?P<expr>.+?)\s+as\s+(?P<var>[^\W\d]\w*)", resource_text, re.I)
+        if as_match:
+            resource_text = as_match.group("expr").strip()
+            var_name = as_match.group("var")
+        try:
+            resource_expr = parse_expression(resource_text)
+        except AngisSyntaxError:
+            resource_expr = parse_text_value(resource_text)
+        return AsyncWithBlock(
+            body=body,
+            resource=resource_expr,
+            variable_name=var_name,
+            source=line.text,
+            confidence=0.99,
+        )
+
+    init_match = re.fullmatch(
+        r"(?:on\s+create|init|constructor|when\s+creating)\s+(?:for\s+)?(?P<blueprint>[^\W\d]\w*)"
+        r"(?:\s+with\s+(?P<params>.+))?",
+        header,
+        re.I,
+    )
+    if init_match:
+        params, param_types = _parse_param_names(init_match.group("params") or "")
+        return BlueprintInitDef(
+            blueprint_name=init_match.group("blueprint"),
+            params=params,
+            param_types=param_types,
+            body=body,
+            source=line.text,
+            confidence=0.99,
+        )
+
     raise AngisSyntaxError("Unknown block header. Try If, While, Repeat, For each, Define, or When.")
 
 
@@ -724,7 +930,7 @@ def _parse_command_call(text: str, source: str) -> FunctionCall | None:
         return None
     body = match.group("body").strip()
     result_name = ""
-    result_match = re.fullmatch(r"(?P<body>.+?)\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*)", body, re.I)
+    result_match = re.fullmatch(r"(?P<body>.+?)\s+as\s+(?P<result>[^\W\d]\w*)", body, re.I)
     if result_match:
         body = result_match.group("body").strip()
         result_name = result_match.group("result")
@@ -740,7 +946,7 @@ def _parse_command_call(text: str, source: str) -> FunctionCall | None:
 
 def _parse_direct_command_call(text: str, source: str) -> FunctionCall | None:
     result_name = ""
-    result_match = re.fullmatch(r"(?P<body>.+?)\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*)", text, re.I)
+    result_match = re.fullmatch(r"(?P<body>.+?)\s+as\s+(?P<result>[^\W\d]\w*)", text, re.I)
     if result_match:
         text = result_match.group("body").strip()
         result_name = result_match.group("result")
@@ -758,7 +964,7 @@ def _parse_direct_command_call(text: str, source: str) -> FunctionCall | None:
 
 def _parse_template_command_call(text: str, source: str, command_templates: list[CommandTemplate]) -> FunctionCall | None:
     result_name = ""
-    result_match = re.fullmatch(r"(?P<body>.+?)\s+as\s+(?P<result>[A-Za-z_][A-Za-z0-9_]*)", text, re.I)
+    result_match = re.fullmatch(r"(?P<body>.+?)\s+as\s+(?P<result>[^\W\d]\w*)", text, re.I)
     if result_match:
         text = result_match.group("body").strip()
         result_name = result_match.group("result")
@@ -841,7 +1047,7 @@ def _parse_phrase_definition(text: str) -> tuple[str, list[str]]:
     params = [name for name, _slot_type in slots]
     if len(params) != len(set(params)):
         raise AngisSyntaxError("Phrase command slots must have unique names.")
-    literal_name = re.sub(r"\{[A-Za-z_][A-Za-z0-9_]*(?::[A-Za-z_][A-Za-z0-9_]*)?\}", " ", template)
+    literal_name = re.sub(r"\{[^\W\d]\w*(?::[^\W\d]\w*)?\}", " ", template)
     literal_name = re.sub(r"\(([^()]+)\)", lambda match: match.group(1).split("|", 1)[0], literal_name)
     literal_name = literal_name.replace("[", " ").replace("]", " ")
     return _command_name(literal_name), params
@@ -913,7 +1119,7 @@ def _parse_slot_spec(text: str) -> SlotSpec:
     name, separator, raw_type = text.partition(":")
     slot_name = name.strip()
     slot_type = raw_type.strip().lower() if separator else "value"
-    if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", slot_name):
+    if not re.fullmatch(r"[^\W\d]\w*", slot_name):
         raise AngisSyntaxError(f"Invalid phrase slot {slot_name!r}.")
     if slot_type not in {"value", "number", "text", "name", "key", "path", "point", "expr", "condition"}:
         raise AngisSyntaxError("Phrase slot types must be value, number, text, name, key, path, point, expr, or condition.")
@@ -943,9 +1149,9 @@ def _slot_regex(slot_type: str) -> str:
     if slot_type == "number":
         return r"[+-]?\d+(?:\.\d+)?"
     if slot_type in {"name", "key"}:
-        return r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?(?:\[[^\]]+\])?"
+        return r"[^\W\d]\w*(?:\.[^\W\d]\w*)?(?:\[[^\]]+\])?"
     if slot_type == "path":
-        return r"(?:[A-Za-z0-9_./~:@%+=,-]|\s)+?"
+        return r"(?:(?!\s)[\w./~:@%+=-]|\s)+?"
     if slot_type == "point":
         number = r"[+-]?\d+(?:\.\d+)?"
         separator = r"(?:\s*,\s*|\s+)"
@@ -972,7 +1178,7 @@ def _parse_point_value(text: str) -> list[int | float]:
 def _phrase_literal_regex(text: str) -> str:
     escaped = re.escape(text)
     escaped = re.sub(
-        r"(?<=[A-Za-z0-9])\\\.(?=[A-Za-z0-9])",
+        r"(?<=[\w])\\\.(?=[\w])",
         lambda _match: r"(?:\.|\s+)",
         escaped,
     )
@@ -1000,7 +1206,7 @@ def _split_command_with(text: str) -> tuple[str, str]:
 
 def _command_name(text: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9_]+", "_", text.strip().lower()).strip("_")
-    if not cleaned or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", cleaned):
+    if not cleaned or not re.fullmatch(r"[^\W\d]\w*", cleaned):
         raise AngisSyntaxError(f"Invalid command name {text!r}.")
     return f"command_{cleaned}"
 
@@ -1161,17 +1367,20 @@ def _parse_param_names(text: str) -> tuple[list[str], dict[str, str]]:
     parts = [part.strip() for part in cleaned.split(",") if part.strip()]
     params: list[str] = []
     param_types: dict[str, str] = {}
+    type_pattern = r"(text|string|number|int|decimal|float|bool|boolean|list|map|dict|any)(?:\[[^\W\d_,\s\[\]]+\])?"
     for part in parts:
-        type_match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(text|string|number|int|decimal|float|bool|boolean|list|map|dict|any)", part, re.I)
+        type_match = re.fullmatch(rf"([^\W\d]\w*)\s*:\s*{type_pattern}", part, re.I)
         if type_match:
             name = type_match.group(1)
             ptype = type_match.group(2).lower()
             params.append(name)
             param_types[name] = ptype
         else:
-            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", part):
+            name_match = re.fullmatch(r"[^\W\d]\w*", part)
+            if name_match:
+                params.append(part)
+            else:
                 raise AngisSyntaxError(f"Invalid function parameter {part!r}.")
-            params.append(part)
     return params, param_types
 
 
@@ -1195,16 +1404,16 @@ def _extract_switch_cases(body: list[object]) -> tuple[list[tuple[list[object], 
 
 
 def _is_except_header(text: str) -> bool:
-    return bool(re.fullmatch(r"(?:except|catch|on\s+error)(?:\s+as\s+\w+)?\s*:?", text.strip(), re.I))
+    return bool(re.fullmatch(r"(?:except|catch|on\s+error)(?:\s+as\s+\w+)?\s*:?", _translate(text.strip()), re.I))
 
 
 def _parse_except_variable(text: str) -> str:
-    match = re.fullmatch(r"(?:except|catch|on\s+error)\s+as\s+(?P<var>\w+)\s*:?", text.strip(), re.I)
+    match = re.fullmatch(r"(?:except|catch|on\s+error)\s+as\s+(?P<var>\w+)\s*:?", _translate(text.strip()), re.I)
     return match.group("var") if match else ""
 
 
 def _is_finally_header(text: str) -> bool:
-    return bool(re.fullmatch(r"finally\s*:?", text.strip(), re.I))
+    return bool(re.fullmatch(r"finally\s*:?", _translate(text.strip()), re.I))
 
 
 def parse_condition(text: str) -> object:

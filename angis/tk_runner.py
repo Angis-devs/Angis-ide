@@ -735,7 +735,7 @@ def render_3d_app(app: AppSpec, instruction_runner: Callable[[list[object]], Non
             "scale_y": float(props.get("scale_y", 0)),
             "scale_z": float(props.get("scale_z", 0)),
             "color": props.get("color", "#00ff88"),
-            "image": props.get("image", ""),
+            "image": getattr(obj, "path", "") or props.get("image", ""),
             "kind": obj.kind,
         }
 
@@ -788,6 +788,10 @@ def render_3d_app(app: AppSpec, instruction_runner: Callable[[list[object]], Non
             return _images_3d[key]
         try:
             p = Path(path)
+            if not p.is_file() and interpreter is not None:
+                bp = getattr(interpreter, "base_path", None)
+                if bp is not None:
+                    p = bp / path
             if not p.is_file():
                 p = Path(__file__).parent.parent / path
             if not p.is_file():

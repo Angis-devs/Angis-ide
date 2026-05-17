@@ -16,6 +16,7 @@ import wave
 from .errors import AngisError
 from .interpreter import Interpreter
 from .ir import AnimateObject, AppSpec, GameSpec, MoveObject, PlaySound, SetSoundVolume, ShowText, StopSound
+from .lang import _ as _lang_ui
 from .parser import parse_source
 
 try:
@@ -26,7 +27,9 @@ except ImportError:  # pragma: no cover - optional local dependency
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+LOGO_PATH = PROJECT_ROOT / "logo" / "logo.png"
 STARTUP_IMAGE = PROJECT_ROOT / "angis loading" / "loading screen.png"
+STARTUP_AUDIO = PROJECT_ROOT / "angis loading" / "loading-adieo.mp3"
 STARTUP_AUDIO = PROJECT_ROOT / "angis loading" / "loading-adieo.mp3"
 STARTUP_MAX_SIZE = 720
 
@@ -34,58 +37,131 @@ STARTUP_MAX_SIZE = 720
 class AngisIDE(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("Angis IDE")
+        self.title(_lang_ui("window_title"))
         self.geometry("920x680")
         self.current_file: Path | None = None
         self.app_windows: list[tk.Toplevel] = []
         self.image_refs: list[object] = []
         self._tabs: list[dict] = []
         self._tab_counter = 0
+        self._toolbar_buttons: dict[str, ttk.Button] = {}
+        self._panes: ttk.PanedWindow | None = None
+        self._editor_frame: ttk.LabelFrame | None = None
+        self._output_frame: ttk.LabelFrame | None = None
+        self._error_frame: ttk.LabelFrame | None = None
         self._build_ui()
+        self._set_app_icon(self)
+
+    def _set_app_icon(self, window: tk.Misc) -> None:
+        _set_window_icon(window, LOGO_PATH)
 
     def _build_ui(self) -> None:
         toolbar = ttk.Frame(self)
         toolbar.pack(fill=tk.X, padx=8, pady=8)
 
-        ttk.Button(toolbar, text="Open", command=self.open_file).pack(side=tk.LEFT, padx=(0, 6))
-        ttk.Button(toolbar, text="Save", command=self.save_file).pack(side=tk.LEFT, padx=(0, 6))
-        ttk.Button(toolbar, text="Save As", command=self.save_file_as).pack(side=tk.LEFT, padx=(0, 6))
-        ttk.Button(toolbar, text="Cut", command=lambda: self._editor_event("<<Cut>>")).pack(side=tk.LEFT, padx=(12, 6))
-        ttk.Button(toolbar, text="Copy", command=lambda: self._editor_event("<<Copy>>")).pack(side=tk.LEFT, padx=(0, 6))
-        ttk.Button(toolbar, text="Paste", command=lambda: self._editor_event("<<Paste>>")).pack(side=tk.LEFT, padx=(0, 6))
-        ttk.Button(toolbar, text="Run", command=self.run_code).pack(side=tk.LEFT, padx=(12, 0))
-        ttk.Button(toolbar, text="Close Tab", command=self.close_current_tab).pack(side=tk.RIGHT, padx=(6, 0))
+        def tb(key: str, cmd, pad_left: int = 0) -> ttk.Button:
+            b = ttk.Button(toolbar, text=_lang_ui(key), command=cmd)
+            b.pack(side=tk.LEFT, padx=(pad_left, 6))
+            self._toolbar_buttons[key] = b
+            return b
 
-        panes = ttk.PanedWindow(self, orient=tk.VERTICAL)
-        panes.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 8))
+        tb("open", self.open_file)
+        tb("save", self.save_file)
+        tb("save_as", self.save_file_as)
+        tb("cut", lambda: self._editor_event("<<Cut>>"), 12)
+        tb("copy", lambda: self._editor_event("<<Copy>>"))
+        tb("paste", lambda: self._editor_event("<<Paste>>"))
+        tb("run", self.run_code, 12)
+        tb("settings", self._open_settings)
+        ttk.Button(toolbar, text=_lang_ui("close_tab"), command=self.close_current_tab).pack(side=tk.RIGHT, padx=(6, 0))
 
-        editor_frame = ttk.LabelFrame(panes, text="Editor")
+        self._panes = ttk.PanedWindow(self, orient=tk.VERTICAL)
+        self._panes.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 8))
 
-        self._notebook = ttk.Notebook(editor_frame)
+        self._editor_frame = ttk.LabelFrame(self._panes, text=_lang_ui("editor"))
+
+        self._notebook = ttk.Notebook(self._editor_frame)
         self._notebook.pack(fill=tk.BOTH, expand=True)
         self._notebook.bind("<<NotebookTabChanged>>", self._on_tab_switch)
 
         close_key = "<Command-w>" if sys.platform == "darwin" else "<Control-w>"
         self.bind(close_key, lambda _e: self.close_current_tab())
 
-        self.editor = tk.Text(editor_frame)
-        self._line_numbers = tk.Canvas(editor_frame)
+        self.editor = tk.Text(self._editor_frame)
+        self._line_numbers = tk.Canvas(self._editor_frame)
         self._editor_font = tkfont.Font(family="Courier", size=11)
 
-        panes.add(editor_frame, weight=4)
+        self._panes.add(self._editor_frame, weight=4)
 
         self._add_tab(None, "")
 
-        output_frame = ttk.LabelFrame(panes, text="Output")
-        self.output = tk.Text(output_frame, height=8, state=tk.DISABLED, wrap=tk.WORD)
+        self._output_frame = ttk.LabelFrame(self._panes, text=_lang_ui("output"))
+        self.output = tk.Text(self._output_frame, height=8, state=tk.DISABLED, wrap=tk.WORD)
         self.output.pack(fill=tk.BOTH, expand=True)
-        panes.add(output_frame, weight=1)
+        self._panes.add(self._output_frame, weight=1)
 
-        error_frame = ttk.LabelFrame(panes, text="Errors")
-        self.errors = tk.Text(error_frame, height=5, state=tk.DISABLED, wrap=tk.WORD, foreground="#9b1c1c")
+        self._error_frame = ttk.LabelFrame(self._panes, text=_lang_ui("errors"))
+        self.errors = tk.Text(self._error_frame, height=5, state=tk.DISABLED, wrap=tk.WORD, foreground="#9b1c1c")
         self.errors.pack(fill=tk.BOTH, expand=True)
-        panes.add(error_frame, weight=1)
+        self._panes.add(self._error_frame, weight=1)
         self._build_readonly_menus()
+
+    def _rebuild_ui_texts(self) -> None:
+        for key, btn in self._toolbar_buttons.items():
+            btn.config(text=_lang_ui(key))
+        if self._editor_frame:
+            self._editor_frame.config(text=_lang_ui("editor"))
+        if self._output_frame:
+            self._output_frame.config(text=_lang_ui("output"))
+        if self._error_frame:
+            self._error_frame.config(text=_lang_ui("errors"))
+        current_name = self.current_file.name if self.current_file else ""
+        if current_name:
+            self.title(f"{_lang_ui('window_title')} - {current_name}")
+        else:
+            self.title(_lang_ui("window_title"))
+        for i, tab in enumerate(self._tabs):
+            path = tab["path"]
+            label = path.name if path else f"{_lang_ui('untitled')} {i + 1}"
+            self._notebook.tab(i, text=label)
+        # rebuild context menus
+        self._build_editor_menu()
+        self._build_readonly_menus()
+
+    def _open_settings(self) -> None:
+        from .lang import get_language, get_supported_languages, set_language
+        dialog = tk.Toplevel(self)
+        dialog.title(_lang_ui("set_language"))
+        dialog.geometry("360x160")
+        dialog.resizable(False, False)
+        dialog.transient(self)
+        dialog.grab_set()
+
+        ttk.Label(dialog, text=_lang_ui("choose_language")).pack(pady=(20, 8))
+        langs = get_supported_languages()
+        var = tk.StringVar()
+        current = get_language()
+        combo = ttk.Combobox(dialog, textvariable=var, state="readonly", width=24)
+        combo["values"] = [f"{p['name']} ({p['code']})" for p in langs]
+        for i, p in enumerate(langs):
+            if p["code"] == current.code:
+                combo.current(i)
+                break
+        else:
+            combo.current(0)
+        combo.pack()
+
+        def apply() -> None:
+            sel = combo.current()
+            if sel >= 0:
+                set_language(langs[sel]["code"])
+                self._rebuild_ui_texts()
+            dialog.destroy()
+
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=(16, 0))
+        ttk.Button(btn_frame, text=_lang_ui("apply"), command=apply).pack(side=tk.LEFT, padx=(0, 8))
+        ttk.Button(btn_frame, text=_lang_ui("cancel"), command=dialog.destroy).pack(side=tk.LEFT)
 
     def _make_tab_widgets(self) -> tuple[tk.Frame, tk.Text, tk.Canvas]:
         frame = tk.Frame(self._notebook)
@@ -106,7 +182,7 @@ class AngisIDE(tk.Tk):
 
     def _add_tab(self, path: Path | None, content: str = "") -> int:
         self._tab_counter += 1
-        label = path.name if path else f"untitled {self._tab_counter}"
+        label = path.name if path else f"{_lang_ui('untitled')} {self._tab_counter}"
         frame, ed, ln = self._make_tab_widgets()
         self._notebook.add(frame, text=label)
         tab = {"path": path, "editor": ed, "line_numbers": ln, "frame": frame}
@@ -151,13 +227,13 @@ class AngisIDE(tk.Tk):
             self._activate_tab(sel)
 
     def open_file(self) -> None:
-        path = filedialog.askopenfilename(filetypes=[("Angis files", "*.angis"), ("All files", "*")])
+        path = filedialog.askopenfilename(filetypes=[(_lang_ui("angis_files"), "*.angis"), (_lang_ui("all_files"), "*")])
         if not path:
             return
         file_path = self._validate_path(Path(path), must_exist=True)
         content = file_path.read_text(encoding="utf-8")
         self._add_tab(file_path, content)
-        self.title(f"Angis IDE - {file_path.name}")
+        self.title(f"{_lang_ui('window_title')} - {file_path.name}")
 
     def save_file(self) -> None:
         if self.current_file is None:
@@ -166,7 +242,7 @@ class AngisIDE(tk.Tk):
         self._write_current(self.current_file)
 
     def save_file_as(self) -> None:
-        path = filedialog.asksaveasfilename(defaultextension=".angis", filetypes=[("Angis files", "*.angis"), ("Text files", "*.txt"), ("All files", "*")])
+        path = filedialog.asksaveasfilename(defaultextension=".angis", filetypes=[(_lang_ui("angis_files"), "*.angis"), (_lang_ui("text_files"), "*.txt"), (_lang_ui("all_files"), "*")])
         if not path:
             return
         file_path = self._validate_path(Path(path), must_exist=False)
@@ -177,7 +253,7 @@ class AngisIDE(tk.Tk):
             self._notebook.tab(idx, text=label)
         self.current_file = file_path
         self._write_current(file_path)
-        self.title(f"Angis IDE - {file_path.name}")
+        self.title(f"{_lang_ui('window_title')} - {file_path.name}")
 
     def run_code(self) -> None:
         self._set_text(self.output, "")
@@ -209,6 +285,7 @@ class AngisIDE(tk.Tk):
     def _open_angis_app_now(self, app: AppSpec) -> None:
         window = tk.Toplevel(self)
         window.title(app.title)
+        self._set_app_icon(window)
         canvas_scenes = {"canvas", "2d screen", "2d world"}
         true_3d_scenes = {"true 3d", "3d render"}
         window.geometry(f"{app.width}x{app.height}" if app.scene in canvas_scenes | true_3d_scenes | {"3d world", "three d world"} else "520x420")
@@ -260,7 +337,7 @@ class AngisIDE(tk.Tk):
         design = {"width": max(1, app.width), "height": max(1, canvas_height), "scale_x": 1.0, "scale_y": 1.0}
         canvas = tk.Canvas(window, width=app.width, height=canvas_height, bg="#f8fafc", highlightthickness=0)
         canvas.pack(fill=tk.BOTH, expand=True)
-        status = ttk.Label(window, text="Canvas ready")
+        status = ttk.Label(window, text=_lang_ui("canvas_ready"))
         status.pack(fill=tk.X)
         objects = {
             obj.name: {
@@ -275,7 +352,7 @@ class AngisIDE(tk.Tk):
             for obj in app.objects or []
         }
         animations: list[AnimateObject] = []
-        state = {"checking_collision": False, "message": "Canvas ready", "sound_volume": app.sound_volume}
+        state = {"checking_collision": False, "message": _lang_ui("canvas_ready"), "sound_volume": app.sound_volume}
         audio_players: list[subprocess.Popen] = []
 
         def number_property(obj: dict[str, object], name: str, default: int) -> int:
@@ -501,6 +578,7 @@ class AngisIDE(tk.Tk):
         loading.title(f"Loading {app.title}")
         loading.geometry("560x420")
         loading.configure(bg="#0f172a")
+        self._set_app_icon(loading)
         self.app_windows.append(loading)
 
         loading_frame = tk.Frame(loading, bg="#0f172a")
@@ -510,7 +588,7 @@ class AngisIDE(tk.Tk):
         if image is not None:
             tk.Label(loading_frame, image=image, bg="#0f172a").pack(pady=(30, 4))
         else:
-            tk.Label(loading_frame, text="Loading...", font=("TkDefaultFont", 28, "bold"), bg="#0f172a", fg="#f8fafc").pack(pady=(60, 12))
+            tk.Label(loading_frame, text=_lang_ui("loading"), font=("TkDefaultFont", 28, "bold"), bg="#0f172a", fg="#f8fafc").pack(pady=(60, 12))
 
         BAR_W = 360
         BAR_H = 16
@@ -571,7 +649,7 @@ class AngisIDE(tk.Tk):
         canvas = tk.Canvas(window, width=720, height=460, bg="#101827", highlightthickness=0)
         canvas.pack(fill=tk.BOTH, expand=True)
 
-        state = {"x": 0, "z": 0, "message": "Use WASD or arrow keys to move", "checking_collision": False}
+        state = {"x": 0, "z": 0, "message": _lang_ui("use_wasd"), "checking_collision": False}
         objects = {
             obj.name: {
                 "x": obj.x,
@@ -873,6 +951,7 @@ class AngisIDE(tk.Tk):
         window = tk.Toplevel(self)
         window.title(game.name)
         window.geometry("520x640")
+        self._set_app_icon(window)
         self.app_windows.append(window)
 
         canvas = tk.Canvas(window, width=480, height=600, bg="#8fd3ff", highlightthickness=0)
@@ -908,8 +987,8 @@ class AngisIDE(tk.Tk):
         def draw() -> None:
             canvas.delete("all")
             canvas.create_rectangle(0, height - 70, width, height, fill="#63b35d", outline="")
-            canvas.create_text(14, 14, anchor=tk.NW, text=f"Score: {state['score']}", font=("TkDefaultFont", 18, "bold"))
-            canvas.create_text(14, 42, anchor=tk.NW, text="Click or press Space to flap", font=("TkDefaultFont", 11))
+            canvas.create_text(14, 14, anchor=tk.NW, text=f"{_lang_ui('score')}: {state['score']}", font=("TkDefaultFont", 18, "bold"))
+            canvas.create_text(14, 42, anchor=tk.NW, text=_lang_ui("click_or_space"), font=("TkDefaultFont", 11))
 
             bird_y = state["bird_y"]
             canvas.create_oval(
@@ -930,8 +1009,8 @@ class AngisIDE(tk.Tk):
 
             if not state["running"]:
                 canvas.create_rectangle(65, 230, 415, 345, fill="#ffffff", outline="#1f2933", width=2)
-                canvas.create_text(240, 265, text="Game Over", font=("TkDefaultFont", 28, "bold"), fill="#1f2933")
-                canvas.create_text(240, 305, text="Click or press Space to restart", font=("TkDefaultFont", 14), fill="#1f2933")
+                canvas.create_text(240, 265, text=_lang_ui("game_over"), font=("TkDefaultFont", 28, "bold"), fill="#1f2933")
+                canvas.create_text(240, 305, text=_lang_ui("click_restart"), font=("TkDefaultFont", 14), fill="#1f2933")
 
         def hit_pipe(pipe_x: float, pipe_gap_y: float) -> bool:
             bird_left = bird_x - bird_radius
@@ -971,11 +1050,11 @@ class AngisIDE(tk.Tk):
 
     def _build_editor_menu(self) -> None:
         self.editor_menu = tk.Menu(self, tearoff=False)
-        self.editor_menu.add_command(label="Cut", command=lambda: self._editor_event("<<Cut>>"))
-        self.editor_menu.add_command(label="Copy", command=lambda: self._editor_event("<<Copy>>"))
-        self.editor_menu.add_command(label="Paste", command=lambda: self._editor_event("<<Paste>>"))
+        self.editor_menu.add_command(label=_lang_ui("cut"), command=lambda: self._editor_event("<<Cut>>"))
+        self.editor_menu.add_command(label=_lang_ui("copy"), command=lambda: self._editor_event("<<Copy>>"))
+        self.editor_menu.add_command(label=_lang_ui("paste"), command=lambda: self._editor_event("<<Paste>>"))
         self.editor_menu.add_separator()
-        self.editor_menu.add_command(label="Select All", command=self._select_all)
+        self.editor_menu.add_command(label=_lang_ui("select_all"), command=self._select_all)
         self.editor.bind("<Button-2>", self._show_editor_menu)
         self.editor.bind("<Button-3>", self._show_editor_menu)
         self.editor.bind("<Control-a>", lambda _event: self._select_all())
@@ -1023,8 +1102,8 @@ class AngisIDE(tk.Tk):
 
     def _build_readonly_menus(self) -> None:
         self.readonly_menu = tk.Menu(self, tearoff=False)
-        self.readonly_menu.add_command(label="Copy", command=self._copy_focused_text)
-        self.readonly_menu.add_command(label="Select All", command=self._select_all_focused_text)
+        self.readonly_menu.add_command(label=_lang_ui("copy"), command=self._copy_focused_text)
+        self.readonly_menu.add_command(label=_lang_ui("select_all"), command=self._select_all_focused_text)
         for widget in (self.output, self.errors):
             widget.bind("<Button-2>", self._show_readonly_menu)
             widget.bind("<Button-3>", self._show_readonly_menu)
@@ -1106,6 +1185,7 @@ def _show_startup_splash() -> None:
 
     splash = tk.Tk()
     splash.title("Angis")
+    _set_window_icon(splash, LOGO_PATH)
     splash_width, splash_height = _startup_splash_size(STARTUP_IMAGE)
     splash.geometry(f"{splash_width}x{splash_height}")
     splash.configure(bg="#0f172a")
@@ -1162,6 +1242,39 @@ def _show_startup_splash() -> None:
     else:
         splash.after(max(duration_ms + 5000, 60000), lambda: finish(stop_audio=True))
     splash.mainloop()
+
+
+_ICON_CACHE: list[tk.PhotoImage] = []
+
+
+def _set_window_icon(window: tk.Misc, icon_path: Path) -> None:
+    if not icon_path.is_file():
+        return
+    if _ICON_CACHE:
+        try:
+            window.iconphoto(True, _ICON_CACHE[0])
+        except Exception:
+            pass
+        return
+    suffix = icon_path.suffix.lower()
+    if suffix in {".png", ".gif"}:
+        try:
+            icon = tk.PhotoImage(file=str(icon_path))
+            if icon.width() > 64 or icon.height() > 64:
+                icon = icon.subsample(max(1, icon.width() // 48), max(1, icon.height() // 48))
+            _ICON_CACHE.append(icon)
+            window.iconphoto(True, icon)
+        except tk.TclError:
+            pass
+    elif suffix in {".jpg", ".jpeg", ".webp", ".bmp"} and Image is not None and ImageTk is not None:
+        try:
+            pil_image = Image.open(icon_path)
+            pil_image.thumbnail((64, 64))
+            icon = ImageTk.PhotoImage(pil_image)
+            _ICON_CACHE.append(icon)
+            window.iconphoto(True, icon)
+        except Exception:
+            pass
 
 
 def _startup_splash_size(path: Path) -> tuple[int, int]:

@@ -29,6 +29,17 @@ from angis.ir import (
     ForEachBlock,
     FunctionCall,
     FunctionDef,
+    MatchBlock,
+    AsyncForBlock,
+    AsyncWithBlock,
+    BlueprintInitDef,
+    SetLiteral,
+    TupleLiteral,
+    Comprehension,
+    TernaryExpr,
+    WalrusExpr,
+    OperatorOverloadDef,
+    Lambda,
     GameRule,
     GameStart,
     GetArgs,
@@ -1461,6 +1472,137 @@ class ParserTests(unittest.TestCase):
         self.assertEqual(instructions[0].value.op, "-")
         self.assertIsInstance(instructions[0].value.right, BinaryOp)
         self.assertEqual(instructions[0].value.right.op, "+")
+
+    def test_set_literal_parses(self):
+        instructions = parse("Set x to set of 1, 2, 3.")
+        self.assertIsInstance(instructions[0], SetVar)
+        self.assertIsInstance(instructions[0].value, SetLiteral)
+        self.assertEqual(instructions[0].value.values, [1, 2, 3])
+
+    def test_tuple_literal_parses(self):
+        from angis.ir import TupleLiteral
+        instructions = parse("Set x to tuple of 1, 2, 3.")
+        self.assertIsInstance(instructions[0], SetVar)
+        self.assertIsInstance(instructions[0].value, TupleLiteral)
+        self.assertEqual(instructions[0].value.values, [1, 2, 3])
+
+    def test_natural_comprehension_parses(self):
+        from angis.ir import Comprehension
+        instructions = parse("Set result to for each x in items collect x * 2.")
+        self.assertIsInstance(instructions[0], SetVar)
+        self.assertIsInstance(instructions[0].value, Comprehension)
+
+    def test_natural_comprehension_with_filter_parses(self):
+        instructions = parse("Set result to for each x in items collect x * 2 if x > 0.")
+        self.assertIsInstance(instructions[0], SetVar)
+        self.assertIsInstance(instructions[0].value, Comprehension)
+
+    def test_natural_lambda_parses(self):
+        instructions = parse("Set f to lambda x into x * 2.")
+        self.assertIsInstance(instructions[0], SetVar)
+        self.assertIsInstance(instructions[0].value, Lambda)
+
+    def test_natural_lambda_arrow_parses(self):
+        instructions = parse("Set f to arrow x to x * 2.")
+        self.assertIsInstance(instructions[0], SetVar)
+        self.assertIsInstance(instructions[0].value, Lambda)
+
+    def test_natural_lambda_fn_parses(self):
+        instructions = parse("Set f to fn x => x * 2.")
+        self.assertIsInstance(instructions[0], SetVar)
+        self.assertIsInstance(instructions[0].value, Lambda)
+
+    def test_ternary_expression_parses(self):
+        instructions = parse("Set x to a if b else c.")
+        self.assertIsInstance(instructions[0], SetVar)
+        self.assertIsInstance(instructions[0].value, TernaryExpr)
+
+    def test_walrus_expression_parses(self):
+        from angis.ir import WalrusExpr
+        instructions = parse("Set x to (y := 5).")
+        self.assertIsInstance(instructions[0], SetVar)
+        self.assertIsInstance(instructions[0].value, WalrusExpr)
+        self.assertEqual(instructions[0].value.name, "y")
+        self.assertEqual(instructions[0].value.value, 5)
+
+    def test_enhanced_param_types_parse(self):
+        instructions = parse(
+            """
+            Define, process with items: list[int]:
+                Say, done.
+            """
+        )
+        self.assertIsInstance(instructions[0], FunctionDef)
+        self.assertEqual(instructions[0].params, ["items"])
+        self.assertEqual(instructions[0].param_types, {"items": "list"})
+
+    def test_operator_overload_parses(self):
+        from angis.ir import OperatorOverloadDef
+        instructions = parse(
+            """
+            + for Point with a, b:
+                Say, overloaded.
+            """
+        )
+        self.assertIsInstance(instructions[0], OperatorOverloadDef)
+        self.assertEqual(instructions[0].blueprint_name, "Point")
+        self.assertEqual(instructions[0].operator, "+")
+        self.assertEqual(instructions[0].param1, "a")
+        self.assertEqual(instructions[0].param2, "b")
+
+    def test_match_block_parses(self):
+        instructions = parse(
+            """
+            Match, x:
+                Case, 1:
+                    Say one.
+                Case, 2:
+                    Say two.
+                Default:
+                    Say other.
+            """
+        )
+        self.assertIsInstance(instructions[0], MatchBlock)
+
+    def test_decorator_parses(self):
+        instructions = parse(
+            """
+            @log
+            Define, greet with name:
+                Say, hello.
+            """
+        )
+        self.assertIsInstance(instructions[0], FunctionDef)
+        self.assertEqual(instructions[0].decorators, ["log"])
+
+    def test_async_for_parses(self):
+        instructions = parse(
+            """
+            Async for each item in stream:
+                Say, item.
+            """
+        )
+        self.assertIsInstance(instructions[0], AsyncForBlock)
+
+    def test_async_with_parses(self):
+        instructions = parse(
+            """
+            Async with resource:
+                Say, using.
+            """
+        )
+        self.assertIsInstance(instructions[0], AsyncWithBlock)
+
+    def test_blueprint_init_parses(self):
+        instructions = parse(
+            """
+            On create for Player with name and health:
+                Set, self.health to health.
+            """
+        )
+        self.assertIsInstance(instructions[0], BlueprintInitDef)
+        self.assertEqual(instructions[0].blueprint_name, "Player")
+        self.assertEqual(instructions[0].params, ["name", "health"])
 
 
 if __name__ == "__main__":
