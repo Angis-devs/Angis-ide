@@ -1,0 +1,108 @@
+# Can you code anything in Angis?
+# Yes. This file is the answer.
+
+import python os as os
+import python json as json
+import python datetime as datetime
+import python math as math
+import python hashlib as hashlib
+import python tempfile as tempfile
+import python textwrap as textwrap
+import python statistics as stats
+import python itertools as itertools
+
+Say, Yes. You can code anything in natural Angis flow.
+
+# ─── 1. Files & paths ───
+Say, - - - File system - - -
+
+Get os getcwd as here.
+Show here.
+
+Run os path join with left: here, right: "answer.txt" as path.
+Show path.
+
+Run os path exists with path: path as exists.
+Show exists.
+
+# ─── 2. JSON ───
+Say, - - - JSON - - -
+
+Run json dumps with obj: {"question": "code anything?", "answer": "yes"}, indent: 2 as pretty.
+Show pretty.
+
+# ─── 3. Math beyond hardcoded stdlib ───
+Say, - - - Extended math - - -
+
+Run math degrees with value: 3.14159 as deg.
+Show deg.
+
+Run math isclose with a: 0.1, b: 0.1, rel_tol: 0.01 as close.
+Show close.
+
+Run math comb with n: 10, k: 3 as combos.
+Show combos.
+
+# ─── 4. Statistics ───
+Say, - - - Statistics - - -
+
+Run stats mean with data: [10, 20, 30, 40, 50] as mean.
+Show mean.
+
+Run stats median with data: [10, 20, 30, 40, 50] as med.
+Show med.
+
+Run stats stdev with data: [10, 20, 30, 40, 50] as sd.
+Show sd.
+
+# ─── 5. Text processing ───
+Say, - - - Text processing - - -
+
+Run textwrap fill with text: "This is a long line that should be wrapped to a certain width", width: 30 as wrapped.
+Show wrapped.
+
+Run textwrap indent with text: "line one\nline two\nline three", prefix: ">> " as indented.
+Show indented.
+
+# ─── 6. Date/time ───
+Say, - - - Date and time - - -
+
+Run datetime datetime now as now.
+Show now.
+
+# ─── 7. System info ───
+Say, - - - System - - -
+
+Run os cpu_count as cores.
+Show cores.
+
+Run os getpid as pid.
+Show pid.
+
+# ─── 8. Hashing ───
+Say, - - - Hashing - - -
+
+import python codecs as codecs
+
+Run codecs encode with obj: "hello from angis", encoding: "utf-8" as encoded.
+Run hashlib sha256 with data: encoded as hash.
+Get hash hexdigest as hexhash.
+Show hexhash.
+
+# ─── 9. Combinatorics ───
+Say, - - - Combinatorics - - -
+
+Run itertools combinations with iterable: ["a", "b", "c"], r: 2 as raw_combos.
+import python builtins as builtins
+Run builtins list with iterable: raw_combos as combos_list.
+Show combos_list.
+
+# ─── 10. Temp files ───
+Say, - - - Temporary files - - -
+
+Run tempfile mkstemp with suffix: ".angis" as tmp.
+Get item at index 1 of tmp as tmp_path.
+Show tmp_path.
+
+# ─── Done ───
+Say, Yes. You can code anything in Angis.

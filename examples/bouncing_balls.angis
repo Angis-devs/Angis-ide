@@ -1,0 +1,173 @@
+App, Bouncing Balls Simulation.
+Scene, canvas.
+Window size 700 by 550.
+Dark background.
+
+# --- Create the balls ---
+
+Create circle named ball1 at x 100 y 50.
+Set ball1 color to #ff6b6b.
+Set ball1 size to 28.
+
+Create circle named ball2 at x 250 y 80.
+Set ball2 color to #ffd93d.
+Set ball2 size to 22.
+
+Create circle named ball3 at x 400 y 40.
+Set ball3 color to #6bcb77.
+Set ball3 size to 34.
+
+Create circle named ball4 at x 550 y 100.
+Set ball4 color to #4d96ff.
+Set ball4 size to 18.
+
+Create circle named ball5 at x 350 y 150.
+Set ball5 color to #c084fc.
+Set ball5 size to 26.
+
+# --- Physics state ---
+
+Set b1x to 100. Set b1y to 50. Set b1dx to 4. Set b1dy to 3.
+Set b2x to 250. Set b2y to 80. Set b2dx to -3. Set b2dy to 5.
+Set b3x to 400. Set b3y to 40. Set b3dx to 2. Set b3dy to -4.
+Set b4x to 550. Set b4y to 100. Set b4dx to -5. Set b4dy to 2.
+Set b5x to 350. Set b5y to 150. Set b5dx to 3. Set b5dy to -4.
+
+Set gravity to 0.35.
+Set damping to 0.85.
+Set left_wall to 5.
+Set right_wall to 665.
+Set top_wall to 5.
+Set bottom_wall to 515.
+
+Set bounce_count to 0.
+
+Create text named title at x 10 y 10 saying "Bouncing Balls — Physics Simulation".
+Set title color to #94a3b8.
+Set title size to 14.
+
+Create text named info at x 10 y 510 saying "Bounces: 0".
+Set info color to #64748b.
+Set info size to 12.
+
+# --- Physics loop ---
+
+every 30 ms:
+    # ---- Ball 1 ----
+    Set b1dy to b1dy + gravity.
+    Set b1x to b1x + b1dx.
+    Set b1y to b1y + b1dy.
+    If b1x is less than left_wall:
+        Set b1x to left_wall.
+        Set b1dx to 0 - b1dx.
+        Add 1 to bounce_count.
+    If b1x is greater than right_wall:
+        Set b1x to right_wall.
+        Set b1dx to 0 - b1dx.
+        Add 1 to bounce_count.
+    If b1y is less than top_wall:
+        Set b1y to top_wall.
+        Set b1dy to 0 - b1dy.
+        Add 1 to bounce_count.
+    If b1y is greater than bottom_wall:
+        Set b1y to bottom_wall.
+        Set b1dy to 0 - (b1dy * damping).
+        Add 1 to bounce_count.
+    Set ball1 x to b1x.
+    Set ball1 y to b1y.
+
+    # ---- Ball 2 ----
+    Set b2dy to b2dy + gravity.
+    Set b2x to b2x + b2dx.
+    Set b2y to b2y + b2dy.
+    If b2x is less than left_wall:
+        Set b2x to left_wall.
+        Set b2dx to 0 - b2dx.
+        Add 1 to bounce_count.
+    If b2x is greater than right_wall:
+        Set b2x to right_wall.
+        Set b2dx to 0 - b2dx.
+        Add 1 to bounce_count.
+    If b2y is less than top_wall:
+        Set b2y to top_wall.
+        Set b2dy to 0 - b2dy.
+        Add 1 to bounce_count.
+    If b2y is greater than bottom_wall:
+        Set b2y to bottom_wall.
+        Set b2dy to 0 - (b2dy * damping).
+        Add 1 to bounce_count.
+    Set ball2 x to b2x.
+    Set ball2 y to b2y.
+
+    # ---- Ball 3 ----
+    Set b3dy to b3dy + gravity.
+    Set b3x to b3x + b3dx.
+    Set b3y to b3y + b3dy.
+    If b3x is less than left_wall:
+        Set b3x to left_wall.
+        Set b3dx to 0 - b3dx.
+        Add 1 to bounce_count.
+    If b3x is greater than right_wall:
+        Set b3x to right_wall.
+        Set b3dx to 0 - b3dx.
+        Add 1 to bounce_count.
+    If b3y is less than top_wall:
+        Set b3y to top_wall.
+        Set b3dy to 0 - b3dy.
+        Add 1 to bounce_count.
+    If b3y is greater than bottom_wall:
+        Set b3y to bottom_wall.
+        Set b3dy to 0 - (b3dy * damping).
+        Add 1 to bounce_count.
+    Set ball3 x to b3x.
+    Set ball3 y to b3y.
+
+    # ---- Ball 4 ----
+    Set b4dy to b4dy + gravity.
+    Set b4x to b4x + b4dx.
+    Set b4y to b4y + b4dy.
+    If b4x is less than left_wall:
+        Set b4x to left_wall.
+        Set b4dx to 0 - b4dx.
+        Add 1 to bounce_count.
+    If b4x is greater than right_wall:
+        Set b4x to right_wall.
+        Set b4dx to 0 - b4dx.
+        Add 1 to bounce_count.
+    If b4y is less than top_wall:
+        Set b4y to top_wall.
+        Set b4dy to 0 - b4dy.
+        Add 1 to bounce_count.
+    If b4y is greater than bottom_wall:
+        Set b4y to bottom_wall.
+        Set b4dy to 0 - (b4dy * damping).
+        Add 1 to bounce_count.
+    Set ball4 x to b4x.
+    Set ball4 y to b4y.
+
+    # ---- Ball 5 ----
+    Set b5dy to b5dy + gravity.
+    Set b5x to b5x + b5dx.
+    Set b5y to b5y + b5dy.
+    If b5x is less than left_wall:
+        Set b5x to left_wall.
+        Set b5dx to 0 - b5dx.
+        Add 1 to bounce_count.
+    If b5x is greater than right_wall:
+        Set b5x to right_wall.
+        Set b5dx to 0 - b5dx.
+        Add 1 to bounce_count.
+    If b5y is less than top_wall:
+        Set b5y to top_wall.
+        Set b5dy to 0 - b5dy.
+        Add 1 to bounce_count.
+    If b5y is greater than bottom_wall:
+        Set b5y to bottom_wall.
+        Set b5dy to 0 - (b5dy * damping).
+        Add 1 to bounce_count.
+    Set ball5 x to b5x.
+    Set ball5 y to b5y.
+
+    # ---- Update HUD ----
+    Turn bounce_count into text as bc.
+    Set info text to "Bounces: " + bc.

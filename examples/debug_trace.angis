@@ -1,0 +1,7 @@
+# Debug trace demo
+
+Set, x to 1.
+Add, 2 to x.
+Show x.
+
+Debug trace.

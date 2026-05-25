@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import csv
+import base64
 import builtins
+import hashlib
+import platform
 import re
 import threading
 import asyncio
@@ -19,8 +22,10 @@ import random
 import re
 import sqlite3
 import time
-from typing import Callable, TextIO
+import uuid
+from typing import Callable, TextIO, cast
 from urllib.error import URLError
+from urllib.parse import quote, unquote, urlparse
 from urllib.request import Request, urlopen
 
 from .errors import AngisRuntimeError
@@ -44,6 +49,7 @@ from .ir import (
     Sleep,
     BinaryOp,
     Break,
+    CallExpr,
     Comprehension,
     Continue,
     CreateFromBlueprint,
@@ -64,6 +70,7 @@ from .ir import (
     FileInfo,
     FilterItems,
     ForEachBlock,
+    format_expr,
     FunctionCall,
     FunctionDef,
     GameRule,
@@ -142,8 +149,8 @@ from .ir import (
 )
 
 
-MAX_WHILE_ITERATIONS = 10000
-MAX_FOR_EACH_ITEMS = 10000
+MAX_WHILE_ITERATIONS = 10_000_000
+MAX_FOR_EACH_ITEMS = 10_000_000
 
 
 class _FunctionReturn(Exception):
@@ -193,6 +200,7 @@ class Interpreter:
     functions: dict[str, FunctionDef] = field(default_factory=dict)
     object_methods: dict[tuple[str, str], ObjectMethodDef] = field(default_factory=dict)
     blueprints: dict[str, dict[str, object]] = field(default_factory=dict)
+    compiled_classes: dict[str, type] = field(default_factory=dict)
     lists: dict[str, list[object]] = field(default_factory=dict)
     maps: dict[str, dict[str, object]] = field(default_factory=dict)
     databases: dict[str, sqlite3.Connection] = field(default_factory=dict)
@@ -239,6 +247,7 @@ class Interpreter:
     _async_loop: object = None
     _tk_root: object = None
     _tk_widgets: dict[str, object] = field(default_factory=dict)
+    execution_trace: list[dict[str, str]] = field(default_factory=list)
 
     def run(self, instructions: list[object]) -> list[str]:
         captured: list[str] = []
@@ -279,6 +288,7 @@ class Interpreter:
                 self.blueprint_inits[instruction.blueprint_name] = instruction
 
     def _run_instruction(self, instruction: object, captured: list[str]) -> None:
+        self._record_trace(instruction)
         if isinstance(instruction, IfBlock):
             if self._condition_is_true(instruction.condition):
                 self._run_nested(instruction.body, captured)
@@ -748,6 +758,11 @@ class Interpreter:
                         value = py_method(*args)
                         self._assign_results(instruction, value)
                         return
+                module_function_name = f"{instruction.object_name}_{instruction.method_name.replace('.', '_')}"
+                if module_function_name in self.functions:
+                    value = self._call_function(self.functions[module_function_name], instruction.args or [], captured)
+                    self._assign_results(instruction, value)
+                    return
                 raise AngisRuntimeError(f"Method {instruction.object_name}.{instruction.method_name} has not been defined.")
             value = self._call_object_method(method, instruction.object_name, instruction.args or [], captured)
             self._assign_results(instruction, value)
@@ -760,6 +775,15 @@ class Interpreter:
             if instruction.name in self.builtins:
                 args = [self.evaluate(a) for a in (instruction.args or [])]
                 value = self.builtins[instruction.name](*args)
+                self._assign_results(instruction, value)
+                return
+            if instruction.name in self.variables and callable(self.variables[instruction.name]):
+                args = [self.evaluate(a) for a in (instruction.args or [])]
+                py_function = cast(Callable[..., object], self.variables[instruction.name])
+                try:
+                    value = py_function(*args)
+                except Exception as exc:
+                    raise AngisRuntimeError(f"Python function {instruction.name!r} failed: {exc}") from exc
                 self._assign_results(instruction, value)
                 return
             if instruction.name in self.async_functions:
@@ -938,10 +962,8 @@ class Interpreter:
             return app
         if isinstance(instruction, AppSize):
             app = self._require_app()
-            if instruction.width < 240 or instruction.height < 180:
-                raise AngisRuntimeError("Window size must be at least 240 by 180.")
-            app.width = min(instruction.width, 2400)
-            app.height = min(instruction.height, 1600)
+            app.width = instruction.width
+            app.height = instruction.height
             return app
         if isinstance(instruction, AppBackground):
             app = self._require_app()
@@ -1021,7 +1043,11 @@ class Interpreter:
             else:
                 value = self.evaluate(instruction.value)
             if instruction.object_name in self.maps:
-                self.maps[instruction.object_name][instruction.property_name] = value
+                obj = self.variables.get(instruction.object_name)
+                if obj is not None and not isinstance(obj, dict):
+                    setattr(obj, instruction.property_name, value)
+                else:
+                    self.maps[instruction.object_name][instruction.property_name] = value
                 if self.app is not None:
                     self.app.maps = self.app.maps or {}
                     self.app.maps[instruction.object_name] = dict(self.maps[instruction.object_name])
@@ -1076,8 +1102,48 @@ class Interpreter:
             if instruction.inherits:
                 bp["__parent__"] = instruction.inherits
             self.blueprints[instruction.name] = bp
-            return self.blueprints[instruction.name]
+            bases = []
+            if instruction.inherits:
+                parent_cls = self.compiled_classes.get(instruction.inherits, object)
+                bases.append(parent_cls)
+            cls = type(instruction.name, tuple(bases) or (object,), {})
+            for key, val in bp.items():
+                if key != "__parent__":
+                    setattr(cls, key, val)
+            self.compiled_classes[instruction.name] = cls
+            return bp
         if isinstance(instruction, CreateFromBlueprint):
+            cls = self.compiled_classes.get(instruction.blueprint_name)
+            if cls is not None:
+                instance = object.__new__(cls)
+                for key, value_expr in instruction.items.items():
+                    setattr(instance, key, self.evaluate(value_expr))
+                setattr(instance, "__type__", instruction.blueprint_name)
+                init_def = self.blueprint_inits.get(instruction.blueprint_name)
+                if init_def:
+                    param_names = init_def.params or []
+                    items = instruction.items or {}
+                    self.variables["self"] = instance
+                    previous = {name: self.variables.get(name) for name in param_names}
+                    had_previous = {name: name in self.variables for name in param_names}
+                    try:
+                        for name in param_names:
+                            if name in items:
+                                self.variables[name] = self.evaluate(items[name])
+                        self._run_nested(init_def.body, [])
+                    finally:
+                        self.variables.pop("self", None)
+                        for name in param_names:
+                            if had_previous[name]:
+                                self.variables[name] = previous[name]
+                            else:
+                                self.variables.pop(name, None)
+                self.variables[instruction.name] = instance
+                self.maps[instruction.name] = instance.__dict__
+                if self.app is not None:
+                    self.app.maps = self.app.maps or {}
+                    self.app.maps[instruction.name] = dict(instance.__dict__)
+                return instance
             if instruction.blueprint_name not in self.blueprints:
                 raise AngisRuntimeError(f"Blueprint {instruction.blueprint_name!r} has not been defined.")
             parents = []
@@ -1243,6 +1309,8 @@ class Interpreter:
             if isinstance(value, (str, list, dict)):
                 return len(value)
             raise AngisRuntimeError("Length needs text, a list, or a map.")
+        if isinstance(expression, CallExpr):
+            return self._evaluate_call_expression(expression, [])
         if isinstance(expression, BinaryOp):
             left_val = self.evaluate(expression.left)
             right_val = self.evaluate(expression.right)
@@ -1280,6 +1348,16 @@ class Interpreter:
                 return _require_number(left_val) >= _require_number(right_val)
             if expression.op == "<=":
                 return _require_number(left_val) <= _require_number(right_val)
+            if expression.op == "&":
+                return int(_require_number(left_val)) & int(_require_number(right_val))
+            if expression.op == "|":
+                return int(_require_number(left_val)) | int(_require_number(right_val))
+            if expression.op == "^":
+                return int(_require_number(left_val)) ^ int(_require_number(right_val))
+            if expression.op == "<<":
+                return int(_require_number(left_val)) << int(_require_number(right_val))
+            if expression.op == ">>":
+                return int(_require_number(left_val)) >> int(_require_number(right_val))
             raise AngisRuntimeError(f"Unknown expression operator {expression.op!r}.")
         if isinstance(expression, UnaryOp):
             right_val = self.evaluate(expression.right)
@@ -1287,6 +1365,8 @@ class Interpreter:
                 return -_require_number(right_val)
             if expression.op == "not":
                 return not right_val
+            if expression.op == "~":
+                return ~int(_require_number(right_val))
             raise AngisRuntimeError(f"Unknown unary operator {expression.op!r}.")
         if isinstance(expression, Lambda):
             return expression
@@ -1352,6 +1432,23 @@ class Interpreter:
             return {key: self.evaluate(value) for key, value in expression.items()}
         return expression
 
+    def _evaluate_call_expression(self, expression: CallExpr, captured: list[str]) -> object:
+        if expression.name in self.variables and isinstance(self.variables[expression.name], Lambda):
+            return self._call_lambda(self.variables[expression.name], expression.args, captured)
+        if expression.name in self.builtins:
+            args = [self.evaluate(arg) for arg in expression.args]
+            return self.builtins[expression.name](*args)
+        if expression.name in self.variables and callable(self.variables[expression.name]):
+            args = [self.evaluate(arg) for arg in expression.args]
+            py_function = cast(Callable[..., object], self.variables[expression.name])
+            try:
+                return py_function(*args)
+            except Exception as exc:
+                raise AngisRuntimeError(f"Python function {expression.name!r} failed: {exc}") from exc
+        if expression.name in self.functions:
+            return self._call_function(self.functions[expression.name], expression.args, captured)
+        raise AngisRuntimeError(f"Function {expression.name!r} has not been defined.")
+
     def _assign_access(self, target: Access, value: object) -> None:
         container = self.evaluate(target.target)
         key = self.evaluate(target.key)
@@ -1367,6 +1464,9 @@ class Interpreter:
             if key < 0 or key >= len(container):
                 raise AngisRuntimeError(f"List index {key} is out of range.")
             container[key] = value
+            return
+        if isinstance(key, str):
+            setattr(container, key, value)
             return
         raise AngisRuntimeError("Only maps, data rows, and lists can be changed with field or index access.")
 
@@ -1403,35 +1503,6 @@ class Interpreter:
             self._run_instruction(instr, [])
 
     def _import_module(self, name: str) -> None:
-        allowed = {
-            "pygame",
-            "canvas",
-            "physics",
-            "sound",
-            "network",
-            "storage",
-            "database",
-            "sqlite3",
-            "ui",
-            "video",
-            "packaging",
-            "debug",
-            "std",
-            "math",
-            "random",
-            "time",
-            "json",
-            "file",
-            "text",
-            "csv",
-            "data",
-            "list",
-            "map",
-            "path",
-            "capabilities",
-        }
-        if name not in allowed:
-            raise AngisRuntimeError(f"Module {name!r} is not available in Angis.")
         if name not in self.imports:
             self.imports.append(name)
         if self.app is not None:
@@ -1451,8 +1522,10 @@ class Interpreter:
             data["maps"] = self.maps
         if target in {"imports", "all"}:
             data["imports"] = self.imports
+        if target in {"trace", "all"}:
+            data["trace"] = self.execution_trace
         if target in {"capabilities", "all"}:
-            data["capabilities"] = _stdlib_capabilities()
+            data["capabilities"] = self._capability_registry()
         if target in {"app", "all"} and self.app is not None:
             data["app"] = {
                 "title": self.app.title,
@@ -1512,6 +1585,28 @@ class Interpreter:
 
     def _debug_breakpoint(self, label: str) -> str:
         return f"Breakpoint: {label}\n{self._debug_state('all')}"
+
+    def _record_trace(self, instruction: object) -> None:
+        source = getattr(instruction, "source", "")
+        self.execution_trace.append(
+            {
+                "instruction": type(instruction).__name__,
+                "source": str(source).strip(),
+                "ir": str(instruction),
+            }
+        )
+
+    def _capability_registry(self) -> dict[str, object]:
+        return {
+            "standard_library": _stdlib_capabilities(),
+            "language": _language_capabilities(),
+            "runtime": _runtime_capabilities(),
+            "loaded_imports": sorted(self.imports),
+            "loaded_functions": sorted(self.functions),
+            "loaded_async_functions": sorted(self.async_functions),
+            "loaded_methods": sorted(f"{owner}.{method}" for owner, method in self.object_methods),
+            "loaded_blueprints": sorted(self.blueprints),
+        }
 
     def _open_database(self, raw_path: str, name: str) -> str:
         path = Path(raw_path).expanduser().resolve()
@@ -1680,8 +1775,12 @@ class Interpreter:
 
     def _try_operator_overload(self, operator: str, left: object, right: object) -> object | None:
         for val in (left, right):
+            type_name = ""
             if isinstance(val, dict) and "__type__" in val:
                 type_name = val["__type__"]
+            elif not isinstance(val, (dict, list, str, int, float, bool, tuple)):
+                type_name = getattr(val, "__type__", type(val).__name__)
+            if type_name:
                 key = (type_name, f"__op_{operator}__")
                 if key in self.object_methods:
                     overload = self.object_methods[key]
@@ -1795,6 +1894,9 @@ class Interpreter:
                     self.variables.pop(name, None)
 
     def _method_target(self, object_name: str) -> object:
+        obj = self.variables.get(object_name)
+        if obj is not None and not isinstance(obj, (dict, list, str, int, float, bool, tuple)):
+            return obj
         if object_name in self.maps:
             return self.maps[object_name]
         if object_name in self.lists:
@@ -1807,6 +1909,9 @@ class Interpreter:
         raise AngisRuntimeError(f"Object {object_name!r} has not been created.")
 
     def _object_type(self, object_name: str) -> str:
+        obj = self.variables.get(object_name)
+        if obj is not None and not isinstance(obj, (dict, list, str, int, float, bool, tuple)):
+            return type(obj).__name__
         if object_name in self.maps:
             value = self.maps[object_name].get("__type__", "")
             return str(value) if value else ""
@@ -1998,48 +2103,199 @@ class Interpreter:
         action = instruction.action
         if module == "data":
             module = "csv" if action in {"csv_read", "read_csv"} else module
-        if module not in _stdlib_capabilities():
-            raise AngisRuntimeError(f"Standard library module {module!r} is not available.")
+        if module in _stdlib_capabilities():
+            try:
+                if module == "math":
+                    return _run_math_action(action, args)
+                if module == "random":
+                    return _run_random_action(action, args)
+                if module == "time":
+                    return _run_time_action(action, args)
+                if module == "json":
+                    return _run_json_action(action, args)
+                if module == "file":
+                    return _run_file_action(action, args)
+                if module == "text":
+                    return _run_text_action(action, args)
+                if module == "csv":
+                    return _run_csv_action(action, args)
+                if module == "data":
+                    return _run_data_action(action, args)
+                if module == "list":
+                    return _run_list_action(action, args)
+                if module == "map":
+                    return _run_map_action(action, args)
+                if module == "path":
+                    return _run_path_action(action, args)
+                if module == "convert":
+                    return _run_convert_action(action, args)
+                if module == "bitwise":
+                    return _run_bitwise_action(action, args)
+                if module == "statistics":
+                    return _run_statistics_action(action, args)
+                if module == "socket":
+                    return _run_socket_action(action, args)
+                if module == "url":
+                    return _run_url_action(action, args)
+                if module == "validation":
+                    return _run_validation_action(action, args)
+                if module == "ai":
+                    return _run_ai_action(action, args)
+                if module == "capabilities":
+                    return self._run_capabilities_action(action, args)
+                if module == "debug":
+                    return self._run_debug_action(action, args)
+                if module == "object":
+                    return _run_object_action(action, args)
+                if module == "encoding":
+                    return _run_encoding_action(action, args)
+                if module == "crypto":
+                    return _run_crypto_action(action, args)
+                if module == "system":
+                    return _run_system_action(action, args)
+                if module == "id":
+                    return _run_id_action(action, args)
+                if module == "network":
+                    return _run_network_action(action, args)
+                if module == "security":
+                    return _run_security_action(action, args)
+                if module == "web":
+                    return _run_web_action(action, args)
+                if module == "package":
+                    return _run_package_action(action, args)
+                if module == "permission":
+                    return _run_permission_action(action, args)
+                if module == "deploy":
+                    return _run_deploy_action(action, args)
+                if module == "testing":
+                    return _run_testing_action(action, args)
+                if module == "shell":
+                    return _run_shell_action(action, args)
+                if module == "buffer":
+                    return _run_buffer_action(action, args)
+                if module == "struct":
+                    return _run_struct_action(action, args)
+                if module == "ffi":
+                    return _run_ffi_action(action, args)
+                if module == "mmap":
+                    return _run_mmap_action(action, args)
+                raise AngisRuntimeError(f"Standard library action {module} {action} is not available.")
+            except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+                raise AngisRuntimeError(f"Could not use {module} {action}.") from exc
+            except AngisRuntimeError:
+                # Hardcoded action not found — fall through to dynamic bridge
+                pass
+        # Try dynamic Python module bridge (for imported Python modules)
+        py_module = self._resolve_python_module(module)
+        if py_module is not None:
+            return self._call_dynamic_python(module, py_module, action, args)
+        raise AngisRuntimeError(f"No Python module {module!r} found. Import it first with: import python {module}.")
+
+    def _resolve_python_module(self, name: str) -> object | None:
+        name = name.replace("-", "_")
+        if name in self.python_modules:
+            return self.python_modules[name]
+        if name in self.variables:
+            val = self.variables[name]
+            if hasattr(val, "__module__") or type(val).__module__ != "builtins":
+                return val
+        parts = name.split(".")
+        if parts[0] in self.python_modules:
+            current = self.python_modules[parts[0]]
+            for part in parts[1:]:
+                part = part.replace("-", "_")
+                if hasattr(current, part):
+                    current = getattr(current, part)
+                else:
+                    return None
+            return current
+        return None
+
+    def _call_dynamic_python(self, module_name: str, py_module: object, action: str, args: dict[str, object]) -> object:
+        func_name = action.replace("-", "_")
+        func = self._resolve_python_function(py_module, func_name)
+        if func is None:
+            available = sorted(
+                n for n in dir(py_module)
+                if not n.startswith("_")
+            )
+            raise AngisRuntimeError(
+                f"Python module {module_name!r} has no attribute {func_name!r}. "
+                f"Available: {', '.join(available[:30])}"
+            )
+        return self._call_function_with_args(module_name, action, func, args)
+
+    def _resolve_python_function(self, module: object, name: str) -> object | None:
+        # Strategy 1: underscore-separated as dotted path (path_join -> path.join)
+        parts = name.split("_")
+        current = module
+        for part in parts:
+            if hasattr(current, part):
+                current = getattr(current, part)
+            else:
+                break
+        else:
+            return current
+        # Strategy 2: exact name (getcwd, linesep)
+        if hasattr(module, name):
+            return getattr(module, name)
+        # Strategy 3: combined name (list_directory -> listdirectory)
+        combined = name.replace("_", "")
+        if combined != name and hasattr(module, combined):
+            return getattr(module, combined)
+        # Strategy 4: fuzzy match (callables only)
+        return _find_similar_callable(module, name)
+
+    def _call_function_with_args(self, module_name: str, action: str, func: object, args: dict[str, object]) -> object:
+        if not callable(func):
+            if args:
+                raise AngisRuntimeError(f"{module_name}.{action} is not callable.")
+            return func
+        if not args:
+            return func()
         try:
-            if module == "math":
-                return _run_math_action(action, args)
-            if module == "random":
-                return _run_random_action(action, args)
-            if module == "time":
-                return _run_time_action(action, args)
-            if module == "json":
-                return _run_json_action(action, args)
-            if module == "file":
-                return _run_file_action(action, args)
-            if module == "text":
-                return _run_text_action(action, args)
-            if module == "csv":
-                return _run_csv_action(action, args)
-            if module == "data":
-                return _run_data_action(action, args)
-            if module == "list":
-                return _run_list_action(action, args)
-            if module == "map":
-                return _run_map_action(action, args)
-            if module == "path":
-                return _run_path_action(action, args)
-            if module == "convert":
-                return _run_convert_action(action, args)
-            if module == "bitwise":
-                return _run_bitwise_action(action, args)
-            if module == "statistics":
-                return _run_statistics_action(action, args)
-            if module == "socket":
-                return _run_socket_action(action, args)
-            if module == "ai":
-                return _run_ai_action(action, args)
-            if module == "capabilities":
-                return _stdlib_capabilities()
-        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
-            raise AngisRuntimeError(f"Could not use {module} {action}.") from exc
-        raise AngisRuntimeError(f"Standard library action {module} {action} is not available.")
+            return func(**args)
+        except TypeError:
+            pass
+        try:
+            return func(*args.values())
+        except TypeError as exc:
+            raise AngisRuntimeError(f"Calling {module_name}.{action} failed: {exc}")
+
+    def _run_debug_action(self, action: str, args: dict[str, object] | None = None) -> object:
+        if action in {"trace", "snapshot"}:
+            trace = self._capability_registry()
+            trace["variables"] = {k: v for k, v in self.variables.items() if not k.startswith("_")}
+            return trace
+        if action in {"variables", "vars"}:
+            return {k: v for k, v in self.variables.items() if not k.startswith("_")}
+        if action == "app":
+            return self._debug_state("app")
+        raise AngisRuntimeError(f"Debug action {action!r} is not available.")
+
+    def _run_capabilities_action(self, action: str, args: dict[str, object] | None = None) -> object:
+        args = args or {}
+        registry = self._capability_registry()
+        if action in {"list", "registry", "all"}:
+            return registry
+        if action in {"stdlib", "standard_library"}:
+            return registry["standard_library"]
+        if action == "language":
+            return registry["language"]
+        if action == "runtime":
+            return registry["runtime"]
+        if action in {"imports", "loaded_imports"}:
+            return registry["loaded_imports"]
+        if action in {"functions", "loaded_functions"}:
+            return registry["loaded_functions"]
+        if action in {"has", "supports", "check"}:
+            name = str(_require_arg(args, "name"))
+            return _capability_exists(registry, name)
+        raise AngisRuntimeError(f"Capabilities action {action!r} is not available.")
 
     def _evaluate_stdlib_arg(self, key: str, value: Expression) -> object:
+        if key == "name":
+            return _capability_name_from_expr(value)
         if isinstance(value, Reference):
             if value.name in self.variables:
                 return self.variables[value.name]
@@ -2050,9 +2306,13 @@ class Interpreter:
             if key in {
                 "by",
                 "column",
+                "data",
+                "encoding",
+                "format",
                 "key",
                 "needle",
                 "new",
+                "name",
                 "old",
                 "path",
                 "pattern",
@@ -2145,6 +2405,8 @@ def _access_value(target: object, key: object) -> object:
             return target[key]
         except IndexError as exc:
             raise AngisRuntimeError(f"Text index {key} is out of range.") from exc
+    if isinstance(key, str):
+        return getattr(target, key)
     raise AngisRuntimeError("Only maps, data rows, lists, and text support field or index access.")
 
 
@@ -2192,24 +2454,122 @@ def _require_arg(args: dict[str, object], name: str) -> object:
 
 def _stdlib_capabilities() -> dict[str, list[str]]:
     return {
+        "buffer": ["allocate", "clone", "copy", "create", "fill", "from_bytes", "from_hex", "from_string", "from_text", "hex", "len", "length", "new", "read", "read_bytes", "read_double", "read_float", "read_float32", "read_float64", "read_int16", "read_int32", "read_int64", "read_int8", "read_uint16", "read_uint32", "read_uint64", "read_uint8", "size", "slice", "to_bytes", "to_hex", "unhex", "write", "write_bytes", "write_double", "write_float", "write_float32", "write_float64", "write_int16", "write_int32", "write_int64", "write_int8", "write_uint16", "write_uint32", "write_uint64", "write_uint8", "zero"],
+        "struct": ["calcsize", "pack", "pack_into", "size", "sizeof", "unpack", "unpack_from"],
+        "ffi": ["address", "arg_type", "c_char", "c_string", "call", "call_function", "char", "double", "f32", "f64", "float", "float32", "float64", "i16", "i32", "i64", "i8", "int16", "int32", "int64", "int8", "load", "load_library", "open", "pointer", "pointer_to", "ptr", "return_type", "set_arg_type", "set_return_type", "size", "sizeof", "string", "u16", "u32", "u64", "u8", "uint16", "uint32", "uint64", "uint8", "void", "void_p"],
+        "mmap": ["close", "create", "flush", "map", "open", "read", "read_bytes", "resize", "seek", "sync", "tell", "write", "write_bytes"],
         "ai": ["ask", "autocomplete", "categorize", "chat", "classify", "compare", "complete", "count_sentences", "count_words", "detect_language", "entities", "extract_entities", "extractive_summary", "flesch", "generate", "keywords", "language", "markov", "readability", "respond", "sentiment", "similar", "suggest", "summarize", "summary", "word_count"],
         "bitwise": ["and", "not", "or", "shift_left", "shift_right", "xor"],
-        "capabilities": ["list"],
+        "capabilities": ["functions", "has", "imports", "language", "list", "registry", "runtime", "standard_library"],
         "convert": ["to_number", "to_string"],
         "csv": ["read", "write"],
         "data": ["column", "count", "filter_equals", "first"],
-        "file": ["copy", "delete", "exists", "glob", "info", "list_dir", "mkdir", "move", "read", "write"],
+        "debug": ["app", "trace", "variables"],
+        "encoding": ["base64_decode", "base64_encode"],
+        "crypto": ["hash"],
+        "system": ["architecture", "environment", "platform"],
+        "id": ["uuid"],
+        "network": ["port_open"],
+        "security": ["path_inside", "redact_secrets"],
+        "web": ["route"],
+        "package": ["manifest"],
+        "permission": ["request"],
+        "deploy": ["plan"],
+        "testing": ["contains", "equals"],
+        "file": ["append", "copy", "delete", "exists", "glob", "info", "list_dir", "mkdir", "move", "read", "write"],
         "json": ["parse", "stringify"],
-        "list": ["append", "at", "clear", "contains", "count_value", "extend", "first", "index_of", "insert", "last", "length", "pop", "reverse", "shuffle", "slice", "sort", "unique"],
-        "map": ["get", "has", "keys", "merge", "values"],
+        "list": ["append", "at", "clear", "contains", "count_value", "extend", "first", "index_of", "insert", "last", "length", "pop", "range", "reverse", "shuffle", "slice", "sort", "unique"],
+        "map": ["get", "has", "keys", "merge", "remove", "set", "values"],
         "math": ["absolute", "atan", "ceil", "clamp", "cos", "degrees", "exp", "factorial", "floor", "gcd", "hypot", "isnan", "log", "log10", "maximum", "minimum", "pi", "power", "radians", "round", "sin", "sqrt", "tan"],
-        "path": ["extension", "join", "name", "parent", "stem"],
-        "random": ["choice", "integer"],
+        "object": ["clone", "equals", "fields"],
+        "path": ["absolute", "extension", "join", "name", "parent", "resolve", "stem"],
+        "random": ["boolean", "choice", "float", "integer"],
         "socket": ["accept", "bind", "close", "connect", "listen", "recv", "recvfrom", "send", "sendto", "udp_socket", "websocket_connect", "websocket_send", "websocket_recv", "websocket_close"],
         "statistics": ["median", "mode", "stdev"],
-        "text": ["capitalize", "char_at", "char_code_at", "contains", "ends_with", "isalnum", "isalpha", "isdigit", "isspace", "join", "lowercase", "lstrip", "pad_end", "pad_start", "partition", "regex_match", "regex_replace", "regex_search", "repeat", "replace", "rstrip", "split", "starts_with", "substring", "swapcase", "title", "trim", "uppercase"],
+        "shell": ["run", "popen", "command"],
+        "text": ["capitalize", "char_at", "char_code_at", "contains", "ends_with", "isalnum", "isalpha", "isdigit", "isspace", "join", "lines", "lowercase", "lstrip", "pad_end", "pad_start", "partition", "regex_match", "regex_replace", "regex_search", "repeat", "replace", "reverse", "rstrip", "slugify", "split", "starts_with", "substring", "swapcase", "title", "trim", "uppercase", "words"],
         "time": ["add_days", "format", "now", "subtract_days", "timestamp", "today"],
+        "url": ["decode", "encode", "parse"],
+        "validation": ["between", "email", "matches", "nonempty", "url"],
     }
+
+
+def _language_capabilities() -> list[str]:
+    return [
+        "apps",
+        "async_functions",
+        "blueprints",
+        "conditions",
+        "custom_phrases",
+        "data_structures",
+        "events",
+        "folder_packages",
+        "functions",
+        "loops",
+        "modules",
+        "object_methods",
+        "standard_library",
+        "try_blocks",
+    ]
+
+
+def _runtime_capabilities() -> list[str]:
+    return [
+        "app_export_html",
+        "app_package_scaffold",
+        "canvas_runtime",
+        "database_sqlite",
+        "debug_state",
+        "file_io",
+        "http_requests",
+        "local_only",
+        "pygame_backend_when_installed",
+        "state_save_load",
+    ]
+
+
+def _capability_exists(registry: dict[str, object], name: str) -> bool:
+    wanted = name.strip().lower().replace(" ", "_")
+    standard_library = registry.get("standard_library", {})
+    if isinstance(standard_library, dict):
+        for module, actions in standard_library.items():
+            module_name = str(module).lower()
+            if wanted == module_name:
+                return True
+            if isinstance(actions, list):
+                for action in actions:
+                    action_name = str(action).lower()
+                    if wanted in {action_name, f"{module_name}.{action_name}", f"{module_name}_{action_name}"}:
+                        return True
+    for key in ("language", "runtime", "loaded_imports", "loaded_functions", "loaded_async_functions", "loaded_methods", "loaded_blueprints"):
+        values = registry.get(key, [])
+        if isinstance(values, list) and wanted in {str(value).lower().replace(" ", "_") for value in values}:
+            return True
+    return False
+
+
+def _find_similar_callable(module: object, name: str) -> object | None:
+    name_clean = name.lower().replace("_", "")
+    candidates = []
+    for attr_name in dir(module):
+        attr = getattr(module, attr_name)
+        if callable(attr) and not attr_name.startswith("_"):
+            if attr_name.lower().replace("_", "") == name_clean:
+                candidates.append((attr_name, attr))
+            elif name_clean in attr_name.lower().replace("_", ""):
+                candidates.append((attr_name, attr))
+    candidates.sort(key=lambda x: (x[0].lower().replace("_", "") == name_clean, x[0]))
+    return candidates[0][1] if candidates else None
+
+
+def _capability_name_from_expr(value: object) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, Reference):
+        return value.name
+    if isinstance(value, Access):
+        return f"{_capability_name_from_expr(value.target)}.{_capability_name_from_expr(value.key)}"
+    return format_expr(value).strip("\"'")
 
 
 def _run_math_action(action: str, args: dict[str, object]) -> int | float:
@@ -2288,6 +2648,12 @@ def _run_random_action(action: str, args: dict[str, object]) -> object:
         if not isinstance(values, list) or not values:
             raise AngisRuntimeError("Random choice needs a non-empty list.")
         return random.choice(values)
+    if action in {"float", "decimal"}:
+        low = _require_number(_require_arg(args, "min"))
+        high = _require_number(_require_arg(args, "max"))
+        return random.uniform(low, high)
+    if action in {"boolean", "bool", "coin"}:
+        return bool(random.getrandbits(1))
     raise AngisRuntimeError(f"Random action {action!r} is not available.")
 
 
@@ -2496,6 +2862,16 @@ def _run_text_action(action: str, args: dict[str, object]) -> object:
         pattern = str(_require_arg(args, "pattern"))
         replacement = str(_require_arg(args, "replacement"))
         return re.sub(pattern, replacement, text)
+    if action == "words":
+        return str(_require_arg(args, "text")).split()
+    if action == "lines":
+        return str(_require_arg(args, "text")).splitlines()
+    if action == "reverse":
+        return str(_require_arg(args, "text"))[::-1]
+    if action in {"slugify", "slug"}:
+        text = str(_require_arg(args, "text")).strip().lower()
+        text = re.sub(r"[^a-z0-9]+", "-", text)
+        return text.strip("-")
     raise AngisRuntimeError(f"Text action {action!r} is not available.")
 
 
@@ -2550,6 +2926,8 @@ def _run_list_action(action: str, args: dict[str, object]) -> object:
         end = int(_require_number(_require_arg(args, "end")))
         return list(range(start, end + 1))
     values = _require_arg(args, "values")
+    if isinstance(values, tuple):
+        values = list(values)
     if not isinstance(values, list):
         raise AngisRuntimeError("List actions need values as a list.")
     if action in {"length", "count"}:
@@ -2568,7 +2946,7 @@ def _run_list_action(action: str, args: dict[str, object]) -> object:
         result.insert(index, _require_arg(args, "value"))
         return result
     if action in {"extend", "concat", "concatenate"}:
-        other = _require_arg(args, "values")
+        other = _require_arg(args, "other")
         if not isinstance(other, list):
             raise AngisRuntimeError("List extend needs another list.")
         return [*values, *other]
@@ -2639,6 +3017,14 @@ def _run_map_action(action: str, args: dict[str, object]) -> object:
         if not isinstance(other, dict):
             raise AngisRuntimeError("Map merge needs other as a dictionary.")
         return {**value, **other}
+    if action in {"set", "put"}:
+        result = dict(value)
+        result[str(_require_arg(args, "key"))] = _require_arg(args, "item")
+        return result
+    if action in {"remove", "delete_key"}:
+        result = dict(value)
+        result.pop(str(_require_arg(args, "key")), None)
+        return result
     raise AngisRuntimeError(f"Map action {action!r} is not available.")
 
 
@@ -2656,7 +3042,222 @@ def _run_path_action(action: str, args: dict[str, object]) -> object:
         return str(path.parent)
     if action == "stem":
         return path.stem
+    if action in {"resolve", "absolute"}:
+        return str(path.resolve())
     raise AngisRuntimeError(f"Path action {action!r} is not available.")
+
+
+def _run_url_action(action: str, args: dict[str, object]) -> object:
+    text = str(_require_arg(args, "text" if "text" in args else "url"))
+    if action == "encode":
+        return quote(text, safe="")
+    if action == "decode":
+        return unquote(text)
+    if action == "parse":
+        parsed = urlparse(text)
+        return {
+            "scheme": parsed.scheme,
+            "host": parsed.hostname or "",
+            "port": parsed.port or 0,
+            "path": parsed.path,
+            "query": parsed.query,
+            "fragment": parsed.fragment,
+        }
+    raise AngisRuntimeError(f"URL action {action!r} is not available.")
+
+
+def _run_validation_action(action: str, args: dict[str, object]) -> bool:
+    value = str(_require_arg(args, "value"))
+    if action == "email":
+        return re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", value) is not None
+    if action == "url":
+        parsed = urlparse(value)
+        return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+    if action in {"nonempty", "not_empty"}:
+        return bool(value.strip())
+    if action == "matches":
+        return re.search(str(_require_arg(args, "pattern")), value) is not None
+    if action == "between":
+        number = _require_number(_require_arg(args, "value"))
+        low = _require_number(_require_arg(args, "min"))
+        high = _require_number(_require_arg(args, "max"))
+        return low <= number <= high
+    raise AngisRuntimeError(f"Validation action {action!r} is not available.")
+
+
+def _clean_object(value: object) -> object:
+    if isinstance(value, dict):
+        return {k: _clean_object(v) for k, v in value.items() if k != "__type__"}
+    if isinstance(value, list):
+        return [_clean_object(v) for v in value]
+    return value
+
+
+def _run_object_action(action: str, args: dict[str, object]) -> object:
+    value = _require_arg(args, "value")
+    if isinstance(value, dict):
+        if action == "clone":
+            return _clean_object(value)
+        if action in {"equals", "compare"}:
+            return _clean_object(value) == _clean_object(_require_arg(args, "other"))
+        if action == "fields":
+            return [key for key in value.keys() if key != "__type__"]
+        raise AngisRuntimeError(f"Object action {action!r} is not available.")
+    if not isinstance(value, (dict, list, str, int, float, bool, tuple)):
+        if action == "clone":
+            return {k: v for k, v in vars(value).items() if not k.startswith("__")}
+        if action in {"equals", "compare"}:
+            other = _require_arg(args, "other")
+            return {k: v for k, v in vars(value).items() if not k.startswith("__")} == (
+                other if isinstance(other, dict) else {k: v for k, v in vars(other).items() if not k.startswith("__")}
+            )
+        if action == "fields":
+            return [k for k in vars(value).keys() if not k.startswith("__")]
+        raise AngisRuntimeError(f"Object action {action!r} is not available.")
+    raise AngisRuntimeError("Object actions need a structured object.")
+
+
+def _run_encoding_action(action: str, args: dict[str, object]) -> str:
+    text = str(_require_arg(args, "text"))
+    if action in {"base64_encode", "encode_base64"}:
+        return base64.b64encode(text.encode("utf-8")).decode("ascii")
+    if action in {"base64_decode", "decode_base64"}:
+        return base64.b64decode(text.encode("ascii")).decode("utf-8")
+    raise AngisRuntimeError(f"Encoding action {action!r} is not available.")
+
+
+def _run_crypto_action(action: str, args: dict[str, object]) -> str:
+    if action in {"hash", "digest"}:
+        text = str(_require_arg(args, "text"))
+        algorithm = str(args.get("algorithm", "sha256")).lower().replace("-", "")
+        if algorithm not in hashlib.algorithms_available:
+            raise AngisRuntimeError(f"Hash algorithm {algorithm!r} is not available.")
+        return hashlib.new(algorithm, text.encode("utf-8")).hexdigest()
+    raise AngisRuntimeError(f"Crypto action {action!r} is not available.")
+
+
+def _run_system_action(action: str, args: dict[str, object]) -> str:
+    if action == "environment":
+        name = str(_require_arg(args, "name"))
+        return os.environ.get(name, "")
+    if action == "platform":
+        return platform.system()
+    if action == "architecture":
+        return platform.machine() or platform.platform()
+    raise AngisRuntimeError(f"System action {action!r} is not available.")
+
+
+def _run_shell_action(action: str, args: dict[str, object]) -> object:
+    import subprocess
+    if action in {"run", "command"}:
+        cmd = str(_require_arg(args, "command"))
+        shell = isinstance(cmd, str) and not cmd.startswith("/") and " " in cmd
+        result = subprocess.run(
+            cmd, shell=shell, capture_output=True, text=True, timeout=args.get("timeout", 30)
+        )
+        return {
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "returncode": result.returncode,
+        }
+    if action == "popen":
+        cmd = str(_require_arg(args, "command"))
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return {"pid": proc.pid, "process": proc}
+    raise AngisRuntimeError(f"Shell action {action!r} is not available.")
+
+
+def _run_id_action(action: str, args: dict[str, object]) -> str:
+    if action in {"uuid", "uuid4", "unique_id"}:
+        return str(uuid.uuid4())
+    raise AngisRuntimeError(f"ID action {action!r} is not available.")
+
+
+def _run_network_action(action: str, args: dict[str, object]) -> object:
+    if action == "port_open":
+        host = str(_require_arg(args, "host"))
+        port = int(_require_number(_require_arg(args, "port")))
+        try:
+            with _socket.create_connection((host, port), timeout=0.25):
+                return True
+        except OSError:
+            return False
+    raise AngisRuntimeError(f"Network action {action!r} is not available.")
+
+
+_SECRET_PATTERNS = (
+    re.compile(r"(?i)\b(token|api[_-]?key|password|passwd|secret)\s*[:=]\s*[^\s,;]+"),
+    re.compile(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"),
+)
+
+
+def _run_security_action(action: str, args: dict[str, object]) -> object:
+    if action == "path_inside":
+        path = Path(str(_require_arg(args, "path"))).expanduser().resolve()
+        folder = Path(str(_require_arg(args, "folder"))).expanduser().resolve()
+        try:
+            path.relative_to(folder)
+            return True
+        except ValueError:
+            return False
+    if action in {"redact_secrets", "redact"}:
+        text = str(_require_arg(args, "text"))
+        for pattern in _SECRET_PATTERNS:
+            text = pattern.sub("[REDACTED]", text)
+        return text
+    raise AngisRuntimeError(f"Security action {action!r} is not available.")
+
+
+def _run_web_action(action: str, args: dict[str, object]) -> object:
+    if action == "route":
+        return {
+            "method": str(_require_arg(args, "method")).upper(),
+            "path": str(_require_arg(args, "path")),
+            "response": _require_arg(args, "response"),
+        }
+    raise AngisRuntimeError(f"Web action {action!r} is not available.")
+
+
+def _run_package_action(action: str, args: dict[str, object]) -> object:
+    if action == "manifest":
+        name = str(_require_arg(args, "package"))
+        version = str(_require_arg(args, "version"))
+        return {"name": name, "version": version, "language": "Angis", "type": "package"}
+    raise AngisRuntimeError(f"Package action {action!r} is not available.")
+
+
+def _run_permission_action(action: str, args: dict[str, object]) -> object:
+    if action == "request":
+        resource = str(_require_arg(args, "resource"))
+        operation = str(_require_arg(args, "operation"))
+        raw_path = str(args.get("path", ""))
+        allowed_operations = {"read", "write", "list", "exists"}
+        allowed = operation in allowed_operations
+        return {"resource": resource, "operation": operation, "path": raw_path, "allowed": allowed}
+    raise AngisRuntimeError(f"Permission action {action!r} is not available.")
+
+
+def _run_deploy_action(action: str, args: dict[str, object]) -> object:
+    if action == "plan":
+        return {
+            "app": str(_require_arg(args, "app")),
+            "target": str(_require_arg(args, "target")),
+            "steps": ["compile", "copy assets", "write manifest"],
+            "offline": True,
+        }
+    raise AngisRuntimeError(f"Deploy action {action!r} is not available.")
+
+
+def _run_testing_action(action: str, args: dict[str, object]) -> object:
+    if action == "equals":
+        return _require_arg(args, "left") == _require_arg(args, "right")
+    if action == "contains":
+        left = _require_arg(args, "left")
+        right = _require_arg(args, "right")
+        if isinstance(left, (list, tuple, set, dict)):
+            return right in left
+        return str(right) in str(left)
+    raise AngisRuntimeError(f"Testing action {action!r} is not available.")
 
 
 def _run_convert_action(action: str, args: dict[str, object]) -> object:
@@ -3238,6 +3839,418 @@ def _app_to_html(app: AppSpec) -> str:
             "</html>",
         ]
     )
+
+
+def _run_buffer_action(action: str, args: dict[str, object]) -> object:
+    from .buffer import Buffer
+
+    if action in {"create", "new", "allocate"}:
+        size = int(_require_number(_require_arg(args, "size")))
+        return Buffer(size)
+    if action in {"from_text", "from_string", "from_str"}:
+        text = str(_require_arg(args, "text"))
+        return Buffer(text)
+    if action in {"from_hex", "unhex"}:
+        text = str(_require_arg(args, "text"))
+        return Buffer.from_hex(text)
+    if action in {"from_bytes", "from_data"}:
+        data = _require_arg(args, "data")
+        if isinstance(data, Buffer):
+            return Buffer.copy_of(data)
+        if isinstance(data, (bytes, bytearray)):
+            return Buffer(data)
+        if isinstance(data, str):
+            return Buffer(data.encode("latin-1"))
+        raise ValueError("buffer from_bytes needs bytes or Buffer.")
+
+    if action in {"length", "size", "len"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise ValueError("buffer actions need a Buffer.")
+        return len(buf)
+    if action in {"read", "read_bytes"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise ValueError("buffer actions need a Buffer.")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        length = int(_require_number(_require_arg(args, "length")))
+        return buf.read(offset, length)
+    if action in {"write", "write_bytes"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise ValueError("buffer actions need a Buffer.")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        data = _require_arg(args, "data")
+        buf.write(offset, data)
+        return len(buf)
+    if action in {"hex", "to_hex"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise ValueError("buffer actions need a Buffer.")
+        return buf.hex()
+    if action in {"to_bytes"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise ValueError("buffer actions need a Buffer.")
+        return buf.to_bytes()
+    if action in {"fill", "zero"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise ValueError("buffer actions need a Buffer.")
+        return len(buf)
+    if action in {"read", "read_bytes"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise AngisRuntimeError("buffer actions need a Buffer.")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        length = int(_require_number(_require_arg(args, "length")))
+        return buf.read(offset, length)
+    if action in {"write", "write_bytes"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise AngisRuntimeError("buffer actions need a Buffer.")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        data = _require_arg(args, "data")
+        buf.write(offset, data)
+        return len(buf)
+    if action in {"hex", "to_hex"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise AngisRuntimeError("buffer actions need a Buffer.")
+        return buf.hex()
+    if action in {"to_bytes"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise AngisRuntimeError("buffer actions need a Buffer.")
+        return buf.to_bytes()
+    if action in {"fill", "zero"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise AngisRuntimeError("buffer actions need a Buffer.")
+        val = int(_require_number(args.get("value", 0)))
+        buf.fill(val)
+        return len(buf)
+    if action in {"copy", "slice"}:
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise AngisRuntimeError("buffer actions need a Buffer.")
+        start = int(_require_number(args.get("start", 0)))
+        length_arg = args.get("length")
+        length = int(_require_number(length_arg)) if length_arg is not None else None
+        return Buffer.copy_of(buf, start, length)
+    if action in {"read_int8"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        return buf.read_int8(offset)
+    if action in {"read_uint8"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        return buf.read_uint8(offset)
+    if action in {"read_int16"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        le = args.get("little_endian", True)
+        return buf.read_int16(offset, le)
+    if action in {"read_uint16"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        le = args.get("little_endian", True)
+        return buf.read_uint16(offset, le)
+    if action in {"read_int32"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        le = args.get("little_endian", True)
+        return buf.read_int32(offset, le)
+    if action in {"read_uint32"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        le = args.get("little_endian", True)
+        return buf.read_uint32(offset, le)
+    if action in {"read_int64"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        le = args.get("little_endian", True)
+        return buf.read_int64(offset, le)
+    if action in {"read_float32", "read_float"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        le = args.get("little_endian", True)
+        return buf.read_float32(offset, le)
+    if action in {"read_float64", "read_double"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        le = args.get("little_endian", True)
+        return buf.read_float64(offset, le)
+    if action in {"write_int8"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        value = int(_require_number(_require_arg(args, "value")))
+        buf.write_int8(offset, value)
+        return len(buf)
+    if action in {"write_uint8"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        value = int(_require_number(_require_arg(args, "value")))
+        buf.write_uint8(offset, value)
+        return len(buf)
+    if action in {"write_int16"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        value = int(_require_number(_require_arg(args, "value")))
+        le = args.get("little_endian", True)
+        buf.write_int16(offset, value, le)
+        return len(buf)
+    if action in {"write_uint16"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        value = int(_require_number(_require_arg(args, "value")))
+        le = args.get("little_endian", True)
+        buf.write_uint16(offset, value, le)
+        return len(buf)
+    if action in {"write_int32"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        value = int(_require_number(_require_arg(args, "value")))
+        le = args.get("little_endian", True)
+        buf.write_int32(offset, value, le)
+        return len(buf)
+    if action in {"write_uint32"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        value = int(_require_number(_require_arg(args, "value")))
+        le = args.get("little_endian", True)
+        buf.write_uint32(offset, value, le)
+        return len(buf)
+    if action in {"write_int64"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        value = int(_require_number(_require_arg(args, "value")))
+        le = args.get("little_endian", True)
+        buf.write_int64(offset, value, le)
+        return len(buf)
+    if action in {"write_float32", "write_float"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        value = _require_number(_require_arg(args, "value"))
+        le = args.get("little_endian", True)
+        buf.write_float32(offset, float(value), le)
+        return len(buf)
+    if action in {"write_float64", "write_double"}:
+        buf = _require_arg(args, "buf")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        value = _require_number(_require_arg(args, "value"))
+        le = args.get("little_endian", True)
+        buf.write_float64(offset, float(value), le)
+        return len(buf)
+        raise ValueError(f"Buffer action {action!r} is not available.")
+
+
+def _run_struct_action(action: str, args: dict[str, object]) -> object:
+    import struct
+    from .buffer import Buffer
+
+    if action in {"pack"}:
+        fmt = str(_require_arg(args, "format"))
+        values = _require_arg(args, "values")
+        if not isinstance(values, list):
+            values = [values]
+        return Buffer(struct.pack(fmt, *values))
+    if action in {"unpack"}:
+        fmt = str(_require_arg(args, "format"))
+        data = _require_arg(args, "buf")
+        if isinstance(data, Buffer):
+            data = data.to_bytes()
+        elif isinstance(data, str):
+            data = data.encode("latin-1")
+        elif not isinstance(data, (bytes, bytearray)):
+            raise AngisRuntimeError("struct unpack needs bytes or Buffer.")
+        result = struct.unpack(fmt, data)
+        if len(result) == 1:
+            return result[0]
+        return list(result)
+    if action in {"pack_into"}:
+        fmt = str(_require_arg(args, "format"))
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise AngisRuntimeError("struct pack_into needs a Buffer.")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        values = _require_arg(args, "values")
+        if not isinstance(values, list):
+            values = [values]
+        struct.pack_into(fmt, buf.as_bytearray(), offset, *values)
+        return len(buf)
+    if action in {"unpack_from"}:
+        fmt = str(_require_arg(args, "format"))
+        buf = _require_arg(args, "buf")
+        if not isinstance(buf, Buffer):
+            raise AngisRuntimeError("struct unpack_from needs a Buffer.")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        result = struct.unpack_from(fmt, buf.as_bytearray(), offset)
+        if len(result) == 1:
+            return result[0]
+        return list(result)
+    if action in {"sizeof", "size", "calcsize"}:
+        fmt = str(_require_arg(args, "format"))
+        return struct.calcsize(fmt)
+    raise AngisRuntimeError(f"Struct action {action!r} is not available.")
+
+
+def _run_ffi_action(action: str, args: dict[str, object]) -> object:
+    if action in {"load", "load_library", "open"}:
+        import ctypes
+
+        path = str(_require_arg(args, "path"))
+        try:
+            return ctypes.CDLL(path)
+        except OSError as exc:
+            raise AngisRuntimeError(f"Cannot load library {path!r}: {exc}") from exc
+    if action in {"call", "call_function"}:
+        lib = _require_arg(args, "lib")
+        name = str(_require_arg(args, "name"))
+        raw_args = _require_arg(args, "args")
+        if not isinstance(raw_args, list):
+            raw_args = [raw_args]
+        try:
+            fn = getattr(lib, name)
+        except AttributeError as exc:
+            raise AngisRuntimeError(f"Function {name!r} not found in library.") from exc
+        result = fn(*raw_args)
+        if isinstance(result, int) and result > 2**31:
+            result = result - 2**32
+        return result
+    if action in {"int8", "i8"}:
+        import ctypes
+        return ctypes.c_int8
+    if action in {"uint8", "u8"}:
+        import ctypes
+        return ctypes.c_uint8
+    if action in {"int16", "i16"}:
+        import ctypes
+        return ctypes.c_int16
+    if action in {"uint16", "u16"}:
+        import ctypes
+        return ctypes.c_uint16
+    if action in {"int32", "i32"}:
+        import ctypes
+        return ctypes.c_int32
+    if action in {"uint32", "u32"}:
+        import ctypes
+        return ctypes.c_uint32
+    if action in {"int64", "i64"}:
+        import ctypes
+        return ctypes.c_int64
+    if action in {"uint64", "u64"}:
+        import ctypes
+        return ctypes.c_uint64
+    if action in {"float", "float32", "f32"}:
+        import ctypes
+        return ctypes.c_float
+    if action in {"double", "float64", "f64"}:
+        import ctypes
+        return ctypes.c_double
+    if action in {"char", "c_char"}:
+        import ctypes
+        return ctypes.c_char
+    if action in {"pointer", "ptr"}:
+        import ctypes
+        return ctypes.c_void_p
+    if action in {"void", "void_p"}:
+        import ctypes
+        return ctypes.c_void_p
+    if action in {"string", "c_string"}:
+        import ctypes
+        return ctypes.c_char_p
+    if action in {"sizeof", "size"}:
+        import ctypes
+        val = _require_arg(args, "value")
+        try:
+            return ctypes.sizeof(val)
+        except TypeError as exc:
+            raise ValueError(f"ffi sizeof needs a ctypes type, got {type(val).__name__}") from exc
+    if action in {"pointer_to", "address"}:
+        import ctypes
+        val = _require_arg(args, "value")
+        return ctypes.addressof(val)
+    if action in {"set_return_type", "return_type"}:
+        lib = _require_arg(args, "lib")
+        name = str(_require_arg(args, "name"))
+        restype = _require_arg(args, "type")
+        try:
+            fn = getattr(lib, name)
+        except AttributeError as exc:
+            raise AngisRuntimeError(f"Function {name!r} not found in library.") from exc
+        fn.restype = restype
+        return True
+    if action in {"set_arg_type", "arg_type"}:
+        lib = _require_arg(args, "lib")
+        name = str(_require_arg(args, "name"))
+        index = int(_require_number(_require_arg(args, "index")))
+        argtype = _require_arg(args, "type")
+        try:
+            fn = getattr(lib, name)
+        except AttributeError as exc:
+            raise AngisRuntimeError(f"Function {name!r} not found in library.") from exc
+        fn.argtypes = list(fn.argtypes or ())
+        while len(fn.argtypes) <= index:
+            fn.argtypes.append(ctypes.c_int)
+        fn.argtypes[index] = argtype
+        return True
+    raise AngisRuntimeError(f"FFI action {action!r} is not available.")
+
+
+def _run_mmap_action(action: str, args: dict[str, object]) -> object:
+    import mmap as _mmap
+
+    if action in {"map", "create", "open"}:
+        path = str(_require_arg(args, "path"))
+        length = int(_require_number(_require_arg(args, "length")))
+        access_str = str(args.get("access", "write")).lower()
+        access = _mmap.ACCESS_WRITE
+        if access_str == "read":
+            access = _mmap.ACCESS_READ
+        elif access_str == "copy":
+            access = _mmap.ACCESS_COPY
+        with open(path, "r+b") as f:
+            return _mmap.mmap(f.fileno(), length, access=access)
+    if action in {"read", "read_bytes"}:
+        m = _require_arg(args, "map")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        length = int(_require_number(_require_arg(args, "length")))
+        m.seek(offset)
+        return m.read(length)
+    if action in {"write", "write_bytes"}:
+        m = _require_arg(args, "map")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        data = _require_arg(args, "data")
+        if isinstance(data, str):
+            data = data.encode("utf-8")
+        elif isinstance(data, Buffer):
+            data = data.to_bytes()
+        m.seek(offset)
+        return m.write(data)
+    if action in {"sync", "flush"}:
+        m = _require_arg(args, "map")
+        m.flush()
+        return True
+    if action in {"close"}:
+        m = _require_arg(args, "map")
+        m.close()
+        return True
+    if action in {"resize"}:
+        m = _require_arg(args, "map")
+        length = int(_require_number(_require_arg(args, "length")))
+        m.resize(length)
+        return True
+    if action in {"seek"}:
+        m = _require_arg(args, "map")
+        offset = int(_require_number(_require_arg(args, "offset")))
+        whence = int(_require_number(args.get("whence", 0)))
+        m.seek(offset, whence)
+        return True
+    if action in {"tell"}:
+        m = _require_arg(args, "map")
+        return m.tell()
+    raise AngisRuntimeError(f"Mmap action {action!r} is not available.")
 
 
 def _mac_app_plist(title: str) -> str:

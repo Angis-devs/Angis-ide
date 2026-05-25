@@ -7,3 +7,7 @@ venv/
 *.egg-info/
 dist/
 build/
+*.backup_*
+passwords.json
+test_out.json
+*.db

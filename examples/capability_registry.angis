@@ -1,0 +1,10 @@
+# Capability registry demo
+
+Use capabilities list as everythingAngisCanDo.
+Use capabilities language as languageFeatures.
+Use capabilities runtime as runtimeFeatures.
+Use capabilities functions as loadedFunctions.
+
+Show languageFeatures.
+Show runtimeFeatures.
+Show loadedFunctions.

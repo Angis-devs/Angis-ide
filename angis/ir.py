@@ -20,7 +20,13 @@ class RangeExpr:
     end: "Expression"
 
 
-Expression = Union[Value, Reference, "BinaryOp", "UnaryOp", "Access", "SliceOf", "LengthOf", "Lambda", "Comprehension", "RangeExpr", "PythonEval", list["Expression"], dict[str, "Expression"]]
+@dataclass(frozen=True)
+class CallExpr:
+    name: str
+    args: list["Expression"] = field(default_factory=list)
+
+
+Expression = Union[Value, Reference, "BinaryOp", "UnaryOp", "Access", "SliceOf", "LengthOf", "Lambda", "Comprehension", "RangeExpr", "CallExpr", "PythonEval", list["Expression"], dict[str, "Expression"]]
 
 
 @dataclass(frozen=True)
@@ -1102,6 +1108,9 @@ def format_expr(expr: Expression) -> str:
         return f"{format_expr(expr.target)}[{format_expr(expr.start)}:{format_expr(expr.end)}]"
     if isinstance(expr, LengthOf):
         return f"length({format_expr(expr.value)})"
+    if isinstance(expr, CallExpr):
+        args = ", ".join(format_expr(arg) for arg in expr.args)
+        return f"call({expr.name}, {args})"
     if isinstance(expr, Lambda):
         return str(expr)
     if isinstance(expr, Comprehension):

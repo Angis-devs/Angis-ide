@@ -1,0 +1,9 @@
+# Namespaced Angis module demo
+
+use module modules/math_tools.angis as tools
+
+Call, tools.greet with Ada as message.
+Call, tools.double with 6 as doubled.
+
+Show message.
+Show doubled.

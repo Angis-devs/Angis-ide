@@ -1,0 +1,7 @@
+# Math package module
+
+Define double with value:
+    Return, value * 2.
+
+Define triple with value:
+    Return, value * 3.

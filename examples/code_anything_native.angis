@@ -1,0 +1,123 @@
+# Angis-native "code anything" capability tour.
+# This avoids host-language escape hatches and uses normal Angis phrases.
+
+say "Yes. Angis can now cover the big building blocks."
+
+# variables, math, text, lists, maps
+set profile to {name: "Ada", age: 36}
+put key language in profile to "Angis" as updated_profile
+remove key age from updated_profile as public_profile
+show public_profile
+
+make range from 1 to 5 as numbers
+extend numbers with [6, 7] as more_numbers
+show more_numbers
+
+get words of "code almost anything in Angis" as words
+slugify "Code Almost Anything In Angis" as slug
+reverse text "Angis" as backwards
+show words
+show slug
+show backwards
+
+# validation, URLs, paths, random, encoding, crypto, system info
+check if "me@example.com" is an email as email_ok
+parse url "https://example.com:443/path?q=1" as url_parts
+resolve path "." as project_path
+flip coin as coin
+encode text "hello" as base64 as encoded
+base64 decode encoded as decoded
+hash text "hello" with sha256 as digest
+get system platform as platform_name
+show email_ok
+show url_parts
+show project_path
+show coin
+show encoded
+show decoded
+show digest
+show platform_name
+
+# file I/O, JSON, regex, identifiers
+write text "hello" to file "examples/code_anything_native_note.txt" as wrote_note
+append text " world" to file "examples/code_anything_native_note.txt" as appended_note
+read file "examples/code_anything_native_note.txt" as note_text
+parse json "[1, 2, 3]" as parsed_profile
+turn parsed_profile into json as json_text
+find pattern "\d+" in "abc123" as digits
+replace pattern "\d+" in "abc123" with "456" as replaced_text
+make uuid as identifier
+show note_text
+show json_text
+show digits
+show replaced_text
+show identifier
+
+# structured objects
+blueprint Person with name: "unknown", language: "Angis"
+create Person named teacher with name: "Ada", language: "Angis"
+clone object teacher as teacher_copy
+list object fields teacher as teacher_fields
+show teacher_copy
+show teacher_fields
+
+# database
+create database file "examples/code_anything_native.db" named demo_db
+run query "create table if not exists notes(text text)" on demo_db
+run query "delete from notes" on demo_db
+run query "insert into notes(text) values ('Angis stores data')" on demo_db
+run query "select text from notes" on demo_db as rows
+show rows
+
+# app/runtime/package primitives
+app "Code Anything Native Demo"
+create label named greeting at x 10 y 5 with text "Hello Angis"
+create button named save_button at x 10 y 40 with text "Save"
+create input named email at x 10 y 80 with placeholder "email"
+create slider named volume at x 20 y 120 from 0 to 100 value 50
+create checkbox named agree at x 20 y 160 checked with text "I agree"
+when save_button clicked:
+    set saved to true
+create circle named ball at x 40 y 210 size 24 color blue
+create rectangle named wall at x 0 y 250 width 200 height 20 color gray
+build app package in folder "examples/code_anything_native_package"
+
+# async/background work and Angis module imports
+define slow_double with value:
+    return value * 2
+run slow_double in background with 21 as job
+wait for job as doubled
+use everything from module "code_anything_helper.angis" as helper
+call helper_triple with 7 as tripled
+show doubled
+show tripled
+
+# networking, permissions/security, and more standard-library modules
+check if path "examples/code_anything_native_note.txt" is inside folder "examples" as safe_path
+redact secrets in text "token=abc password=hunter2 email=a@example.com" as redacted
+check if port 127.0.0.1:1 is open as port_open
+get median of [3, 1, 2] as median_value
+get standard deviation of [2, 4, 4, 4, 5, 5, 7, 9] as deviation
+define web route get "/hello" returning "hello" as hello_route
+create package manifest named "code-anything-native" version "1.0.0" as manifest
+request permission file read for path "examples" as read_permission
+make deployment plan for app "Code Anything Native Demo" to folder "examples/code_anything_native_deploy" as deploy_plan
+test that 2 equals 2 as equality_ok
+test that "Angis" contains "gis" as contains_ok
+show safe_path
+show redacted
+show port_open
+show median_value
+show deviation
+show hello_route
+show manifest
+show read_permission
+show deploy_plan
+show equality_ok
+show contains_ok
+
+# capability/debug introspection
+show debug trace as trace
+show trace
+
+say "Done."

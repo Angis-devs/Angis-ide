@@ -1441,6 +1441,71 @@ class InterpreterTests(unittest.TestCase):
 
         self.assertEqual(output, ["started", "hello from library"])
 
+    def test_angis_module_import_runs_namespaced_functions(self):
+        with TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            (base / "math_tools.angis").write_text(
+                """
+                Define greet with name:
+                    Return, name.
+
+                Define double with value:
+                    Return, value * 2.
+                """,
+                encoding="utf-8",
+            )
+            main = base / "main.angis"
+            main.write_text(
+                """
+                use module math_tools.angis as tools
+                Call, tools.greet with Ada as message.
+                Call, tools.double with 6 as doubled.
+                Show message.
+                Show doubled.
+                """,
+                encoding="utf-8",
+            )
+
+            output = Interpreter().run(parse_file(main))
+
+        self.assertEqual(output, ["Ada", "12"])
+
+    def test_angis_package_import_runs_folder_namespaces(self):
+        with TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            package = base / "tools"
+            (package / "math").mkdir(parents=True)
+            (package / "text").mkdir()
+            (package / "math" / "numbers.angis").write_text(
+                """
+                Define double with value:
+                    Return, value * 2.
+                """,
+                encoding="utf-8",
+            )
+            (package / "text" / "names.angis").write_text(
+                """
+                Define echo with value:
+                    Return, value.
+                """,
+                encoding="utf-8",
+            )
+            main = base / "main.angis"
+            main.write_text(
+                """
+                use package tools as kit
+                Call, kit.math.numbers.double with 6 as doubled.
+                Call, kit.text.names.echo with Ada as name.
+                Show doubled.
+                Show name.
+                """,
+                encoding="utf-8",
+            )
+
+            output = Interpreter().run(parse_file(main))
+
+        self.assertEqual(output, ["12", "Ada"])
+
     def test_phrase_pack_file_runs_from_nested_folder(self):
         with TemporaryDirectory() as temp_dir:
             base = Path(temp_dir)
@@ -1686,6 +1751,12 @@ class InterpreterTests(unittest.TestCase):
                 Show secondBridge.
                 Show hasScoreBridge.
                 Debug capabilities.
+                Use capabilities language as languageCaps.
+                Use capabilities runtime as runtimeCaps.
+                Use capabilities functions as functionCaps.
+                Show languageCaps.
+                Show runtimeCaps.
+                Show functionCaps.
                 """
             )
 
@@ -1723,6 +1794,39 @@ class InterpreterTests(unittest.TestCase):
         self.assertEqual(output[31], "blue")
         self.assertEqual(output[32], "True")
         self.assertIn('"data"', output[33])
+        self.assertIn("folder_packages", output[34])
+        self.assertIn("debug_state", output[35])
+        self.assertIn("[", output[36])
+
+    def test_debug_trace_reports_executed_angis_lines(self):
+        output = run_source(
+            """
+            Set, x to 1.
+            Add, 2 to x.
+            Show x.
+            Debug trace.
+            """
+        )
+
+        self.assertEqual(output[0], "3")
+        self.assertIn('"instruction": "SetVar"', output[1])
+        self.assertIn('"source": "Set x to 1"', output[1])
+        self.assertIn('"instruction": "AddToVar"', output[1])
+        self.assertIn('"source": "Debug trace"', output[1])
+
+    def test_capability_checks_work(self):
+        output = run_source(
+            """
+            Check capability folder_packages as canUsePackages.
+            Check capability made_up_feature as canUseMadeUp.
+            Use capabilities has with name: math.sqrt as canUseSqrt.
+            Show canUsePackages.
+            Show canUseMadeUp.
+            Show canUseSqrt.
+            """
+        )
+
+        self.assertEqual(output, ["True", "False", "True"])
 
 
     def test_math_trig_actions_work(self):
@@ -2095,6 +2199,143 @@ class InterpreterTests(unittest.TestCase):
             """
         )
         self.assertEqual(output[0], "False")
+
+
+    # ── Dynamic Python Bridge ──────────────────────────────────────────────
+
+    def test_dynamic_python_bridge_import_module_and_call_function(self):
+        output = run_source("""
+            import python os as os
+            Use os getcwd as cwd.
+            Show cwd.
+            """)
+        self.assertIn("Angis", output[0])
+
+    def test_dynamic_python_bridge_dotted_path_resolution(self):
+        output = run_source("""
+            import python os as os
+            Run os path join with left: "/a", right: "b" as joined.
+            Show joined.
+            """)
+        self.assertEqual(output[0], "/a/b")
+
+    def test_dynamic_python_bridge_non_callable_attribute(self):
+        output = run_source("""
+            import python os as os
+            Get os sep as sep.
+            Show sep.
+            """)
+        self.assertEqual(output[0], "/")
+
+    def test_dynamic_python_bridge_linesep_constant(self):
+        output = run_source("""
+            import python os as os
+            Run os linesep as ls.
+            Show ls.
+            """)
+        self.assertEqual(output[0], "\n")
+
+    def test_dynamic_python_bridge_kwargs_passed_correctly(self):
+        output = run_source("""
+            import python os as os
+            Run os path join with left: "/x", right: "y" as res.
+            Show res.
+            """)
+        self.assertEqual(output[0], "/x/y")
+
+    def test_dynamic_python_bridge_positional_fallback(self):
+        output = run_source("""
+            import python math as math
+            Run math degrees with value: 3.14159 as deg.
+            Show deg.
+            """)
+        self.assertAlmostEqual(float(output[0]), 180.0, delta=1)
+
+    def test_dynamic_python_bridge_isclose(self):
+        output = run_source("""
+            import python math as math
+            Run math isclose with a: 0.1, b: 0.1, rel_tol: 0.01 as close.
+            Show close.
+            """)
+        self.assertEqual(output[0], "True")
+
+    def test_dynamic_python_bridge_get_form_same_as_use(self):
+        output = run_source("""
+            import python os as os
+            Get os getcwd as cwd.
+            Show cwd.
+            """)
+        self.assertIn("Angis", output[0])
+
+    def test_dynamic_python_bridge_run_form(self):
+        output = run_source("""
+            import python os as os
+            Run os getcwd as cwd.
+            Show cwd.
+            """)
+        self.assertIn("Angis", output[0])
+
+    def test_dynamic_python_bridge_json_dumps_fallthrough(self):
+        output = run_source("""
+            import python json as json
+            Run json dumps with obj: {"key": "val"}, indent: 2 as text.
+            Show text.
+            """)
+        self.assertIn('"key"', output[0])
+
+    def test_dynamic_python_bridge_datetime_now(self):
+        output = run_source("""
+            import python datetime as datetime
+            Run datetime datetime now as now.
+            Show now.
+            """)
+        self.assertIn("20", output[0])
+
+    def test_dynamic_python_bridge_module_alias(self):
+        output = run_source("""
+            import python os as myos
+            Use myos getcwd as cwd.
+            Show cwd.
+            """)
+        self.assertIn("Angis", output[0])
+
+    def test_dynamic_python_bridge_nonexistent_module_errors(self):
+        with self.assertRaises(AngisRuntimeError):
+            run_source("""
+                import python nonexistentxyz as bad
+                """)
+
+    def test_dynamic_python_bridge_nonexistent_function_errors(self):
+        with self.assertRaises(AngisRuntimeError):
+            run_source("""
+                import python os as os
+                Run os this_function_does_not_exist_xyz as x.
+                """)
+
+    def test_dynamic_python_bridge_math_fallthrough_unknown_action(self):
+        output = run_source("""
+            import python math as math
+            Run math degrees with value: 180 as deg.
+            Show deg.
+            """)
+        # math.degrees is not in the hardcoded stdlib, routes through bridge
+        self.assertAlmostEqual(float(output[0]), 10313.240, delta=1)
+
+    def test_dynamic_python_bridge_cpu_count(self):
+        output = run_source("""
+            import python os as os
+            Run os cpu_count as cores.
+            Show cores.
+            """)
+        self.assertTrue(int(output[0]) >= 1)
+
+    def test_dynamic_python_bridge_no_args_callable(self):
+        output = run_source("""
+            import python os as os
+            Use os getcwd as cwd.
+            Show cwd.
+            """)
+        self.assertIn("Angis", output[0])
 
 
 if __name__ == "__main__":

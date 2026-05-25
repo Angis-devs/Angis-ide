@@ -1,0 +1,103 @@
+App, Solar System.
+Scene, canvas.
+Window size 800 by 600.
+Dark background.
+
+Set cx to 400.
+Set cy to 300.
+
+Create circle named sun at x 383 y 283.
+Set sun color to #fbbf24.
+Set sun size to 34.
+
+Create circle named mercury at x 400 y 300.
+Set mercury color to #94a3b8.
+Set mercury size to 8.
+
+Create circle named venus at x 400 y 300.
+Set venus color to #fb923c.
+Set venus size to 12.
+
+Create circle named earth at x 400 y 300.
+Set earth color to #3b82f6.
+Set earth size to 14.
+
+Create circle named mars at x 400 y 300.
+Set mars color to #ef4444.
+Set mars size to 10.
+
+Create circle named jupiter at x 400 y 300.
+Set jupiter color to #f59e0b.
+Set jupiter size to 22.
+
+Create circle named saturn at x 400 y 300.
+Set saturn color to #d97706.
+Set saturn size to 18.
+
+Set am to 0.
+Set av to 30.
+Set ae to 60.
+Set ama to 90.
+Set aj to 120.
+Set asa to 150.
+
+Set speed to 1.
+
+Create text named title at x 10 y 10 saying "Solar System — press UP/DOWN to change speed".
+Set title color to #94a3b8.
+Set title size to 13.
+
+Create text named info at x 10 y 570 saying "Speed: 1x".
+Set info color to #64748b.
+Set info size to 12.
+
+Every 30 ms:
+    calculate the sine of am as sm.
+    calculate the cosine of am as cm.
+    Set mercury x to cx + 50 * cm.
+    Set mercury y to cy + 50 * sm.
+    Set am to am + 4 * speed.
+
+    calculate the sine of av as sv.
+    calculate the cosine of av as cv.
+    Set venus x to cx + 75 * cv.
+    Set venus y to cy + 75 * sv.
+    Set av to av + 3 * speed.
+
+    calculate the sine of ae as se.
+    calculate the cosine of ae as ce.
+    Set earth x to cx + 105 * ce.
+    Set earth y to cy + 105 * se.
+    Set ae to ae + 2.5 * speed.
+
+    calculate the sine of ama as sma.
+    calculate the cosine of ama as cma.
+    Set mars x to cx + 140 * cma.
+    Set mars y to cy + 140 * sma.
+    Set ama to ama + 2 * speed.
+
+    calculate the sine of aj as sj.
+    calculate the cosine of aj as cj.
+    Set jupiter x to cx + 180 * cj.
+    Set jupiter y to cy + 180 * sj.
+    Set aj to aj + 1.5 * speed.
+
+    calculate the sine of asa as ssa.
+    calculate the cosine of asa as csa.
+    Set saturn x to cx + 220 * csa.
+    Set saturn y to cy + 220 * ssa.
+    Set asa to asa + 1 * speed.
+
+When key Up pressed:
+    Set speed to speed + 0.5.
+    If speed is greater than 5:
+        Set speed to 5.
+    Turn speed into text as st.
+    Set info text to "Speed: " + st + "x".
+
+When key Down pressed:
+    Set speed to speed - 0.5.
+    If speed is less than 0.5:
+        Set speed to 0.5.
+    Turn speed into text as st.
+    Set info text to "Speed: " + st + "x".

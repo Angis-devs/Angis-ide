@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 import sys
+import textwrap
 
 from .errors import AngisError
 from .interpreter import Interpreter
@@ -26,6 +27,13 @@ def _event_runner(interpreter: Interpreter, instructions: list[object]) -> None:
 def _run_visual_app(app_spec: object, interpreter: Interpreter) -> None:
     scene = getattr(app_spec, "scene", "text")
     if scene in {"true 3d", "3d render"}:
+        try:
+            from .gl_renderer import render_3d_app as gl_render
+
+            gl_render(app_spec, lambda instrs: _event_runner(interpreter, instrs), interpreter=interpreter)
+            return
+        except Exception:
+            pass
         from .tk_runner import render_3d_app
 
         render_3d_app(app_spec, lambda instrs: _event_runner(interpreter, instrs), interpreter=interpreter)
@@ -62,6 +70,15 @@ def main(argv: list[str] | None = None) -> int:
 
     watch_parser = subcommands.add_parser("watch", help="Watch a .angis file for changes and auto-reload")
     watch_parser.add_argument("file", type=Path)
+
+    build_parser = subcommands.add_parser("build", help="Build a standalone executable from a .angis file")
+    build_parser.add_argument("input", type=Path, help="Input .angis file")
+    build_parser.add_argument("-o", "--output", type=Path, default=None, help="Output executable path")
+    build_parser.add_argument("--onefile", action="store_true", default=True, help="Build a single-file executable")
+    build_parser.add_argument("--windowed", action="store_true", help="Build a windowed app (no console)")
+
+    ide_parser = subcommands.add_parser("ide", help="Open the Angis IDE")
+    ide_parser.add_argument("file", type=Path, nargs="?", help="Optional .angis file to open")
 
     args = parser.parse_args(argv)
 
@@ -125,6 +142,66 @@ def main(argv: list[str] | None = None) -> int:
                                 print(f"Reload error: {exc}")
             except KeyboardInterrupt:
                 print("\nWatcher stopped.")
+        elif args.command == "build":
+            input_path = Path(args.input).expanduser().resolve()
+            source = input_path.read_text(encoding="utf-8")
+            escaped_source = source.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+            wrapper = textwrap.dedent(f'''\
+            #!/usr/bin/env python3
+            import sys
+            from pathlib import Path
+            from angis.parser import parse_source
+            from angis.interpreter import Interpreter
+
+            SOURCE = "{escaped_source}"
+
+            if __name__ == "__main__":
+                instructions = parse_source(SOURCE, base_path=Path(__file__).parent)
+                interp = Interpreter(output=sys.stdout)
+                interp.run(instructions)
+            ''')
+
+            build_dir = Path(args.output or input_path.stem + "_build").expanduser().resolve()
+            build_dir.mkdir(parents=True, exist_ok=True)
+            main_py = build_dir / "main.py"
+            main_py.write_text(wrapper, encoding="utf-8")
+
+            import subprocess, importlib
+            angis_path = str(Path(importlib.util.find_spec("angis").origin).parent.parent)
+            pyi_args = [
+                sys.executable, "-m", "PyInstaller",
+                "--onefile" if args.onefile else "--onedir",
+                "--paths", angis_path,
+                "--hidden-import", "angis",
+                "--hidden-import", "angis.parser",
+                "--hidden-import", "angis.interpreter",
+                "--hidden-import", "angis.intents",
+                "--hidden-import", "angis.ir",
+                "--hidden-import", "angis.lang",
+                "--hidden-import", "angis.errors",
+                "--hidden-import", "angis.transpile",
+                "--hidden-import", "angis.ai",
+                "--hidden-import", "angis.gl_renderer",
+                "--hidden-import", "angis.tk_runner",
+                "--name", input_path.stem,
+                str(main_py),
+            ]
+            if args.windowed:
+                pyi_args.insert(1, "--windowed")
+            result = subprocess.run(pyi_args, cwd=str(build_dir), capture_output=True, text=True)
+            if result.returncode != 0:
+                print(result.stderr, file=sys.stderr)
+                return 1
+            dist_exe = build_dir / "dist" / input_path.stem
+            if dist_exe.exists():
+                print(f"Built executable: {dist_exe}")
+            else:
+                print(f"Build output: {build_dir / 'dist'}")
+        elif args.command == "ide":
+            from .ide import main as ide_main
+
+            ide_main(args.file)
         return 0
     except AngisError as exc:
         print(f"Angis error: {exc}", file=sys.stderr)

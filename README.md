@@ -387,10 +387,17 @@ Get folder from /Users/fellflow/Desktop/Angis/assets/items.csv as pathFolder.
 Get stem from /Users/fellflow/Desktop/Angis/assets/items.csv as pathStem.
 Join path /Users/fellflow/Desktop/Angis/assets with items.csv as joinedPath.
 Use capabilities list as available.
+Use capabilities language as languageFeatures.
+Use capabilities runtime as runtimeFeatures.
+Use capabilities functions as loadedFunctions.
+Check capability folder_packages as canUsePackages.
+Use capabilities has with name: math.sqrt as canUseSqrt.
 Debug capabilities.
 ```
 
 These commands are Angis' expansion point for doing more things with the same language style. They call registered safe local actions, not arbitrary Python code.
+The capability registry reports standard-library actions, language features, runtime features, loaded imports, loaded functions, methods, and blueprints.
+Capability checks return `True` or `False`, so programs can guard optional features before using them.
 `Use`, `Ask`, `Tell`, `Get`, and `Run` can all call the same registered actions.
 
 Some common actions also have shorter human-style forms:
@@ -594,12 +601,14 @@ Debug variables.
 Debug lists.
 Debug maps.
 Debug imports.
+Debug trace.
 Debug app.
 
 Export app to file /Users/fellflow/Desktop/Angis/assets/my_app.html.
 ```
 
 `Export app to file ...` writes a local `.html` app preview. It does not upload or run shell commands.
+`Debug trace.` prints the executed Angis source lines and IR instruction names in order.
 
 Multi-file modules:
 
@@ -607,9 +616,17 @@ Multi-file modules:
 include shared.angis
 import file shared.angis
 use phrase library phrase_library.angis
+use module modules/math_tools.angis as tools
+use package packages/tools as kit
+
+Call, tools.greet with Ada as message.
+Call, tools.double with 6 as doubled.
+Call, kit.math.numbers.double with 6 as packageDoubled.
 ```
 
-Included files and phrase libraries must end in `.angis`. Recursive includes are blocked.
+Included files, phrase libraries, and modules must end in `.angis`. Recursive includes are blocked.
+`use module ... as name` prefixes functions from that file, so `tools.greet` and `tools.double` can be called without mixing their names into the main file.
+`use package ... as name` loads every `.angis` file in a folder. The folder path becomes part of the call name, so `packages/tools/math/numbers.angis` can be called as `kit.math.numbers.double`.
 
 Phrase libraries can define custom wording once:
 
@@ -998,6 +1015,15 @@ Add new phrase support in `angis/intents.py` by adding an `IntentPattern` to `PA
 - Return one IR instruction.
 - Assign a confidence score between `0.0` and `1.0`.
 - Keep ambiguous phrases lower confidence than direct forms.
+
+## Natural Language & AI Fallback
+
+Angis features a local AI fallback system in `angis/ai.py`. If the standard intent parser doesn't understand a phrase, it will attempt to:
+1. Match it against a cache of known "natural" phrases.
+2. Use heuristics to identify common patterns (like `x = 5`).
+3. Handle basic keywords in additional languages (Italian, Portuguese, Japanese).
+
+You can "teach" Angis new phrases by adding them to `~/.angis_ai_cache.json` or by using the `angis.ai` module programmatically.
 
 ## Security
 

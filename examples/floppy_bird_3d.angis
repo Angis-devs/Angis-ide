@@ -5,9 +5,9 @@ camera at x 0 y 0 z -8.
 mode third person.
 
 Set score to 0.
-Set gravity to 0.1.
-Set flap to -8.
-Set gap_half to 300.
+Set gravity to 0.05.
+Set flap to -3.
+Set gap_half to 150.
 Set shift to 0.
 Set bird_y to 0.
 Set velocity to 0.
@@ -126,11 +126,13 @@ every 30 ms:
         Show text "Game Over!".
         Set bird_y to 0.
         Set bird y to 0.
+        Set velocity to 0.
     If bird_y is less than -550:
         Set game_over to true.
         Show text "Game Over!".
         Set bird_y to 0.
         Set bird y to 0.
+        Set velocity to 0.
     Set w1z to w1z minus wall_speed.
     Set w2z to w2z minus wall_speed.
     Set w3z to w3z minus wall_speed.
@@ -184,11 +186,13 @@ every 30 ms:
                 Show text "Game Over!".
                 Set bird_y to 0.
                 Set bird y to 0.
+                Set velocity to 0.
             If bird_y is greater than w1g plus gap_half:
                 Set game_over to true.
                 Show text "Game Over!".
                 Set bird_y to 0.
                 Set bird y to 0.
+                Set velocity to 0.
     If w2z is less than 3:
         If w2z is greater than -3:
             If bird_y is less than w2g minus gap_half:
@@ -196,11 +200,13 @@ every 30 ms:
                 Show text "Game Over!".
                 Set bird_y to 0.
                 Set bird y to 0.
+                Set velocity to 0.
             If bird_y is greater than w2g plus gap_half:
                 Set game_over to true.
                 Show text "Game Over!".
                 Set bird_y to 0.
                 Set bird y to 0.
+                Set velocity to 0.
     If w3z is less than 3:
         If w3z is greater than -3:
             If bird_y is less than w3g minus gap_half:
@@ -208,11 +214,13 @@ every 30 ms:
                 Show text "Game Over!".
                 Set bird_y to 0.
                 Set bird y to 0.
+                Set velocity to 0.
             If bird_y is greater than w3g plus gap_half:
                 Set game_over to true.
                 Show text "Game Over!".
                 Set bird_y to 0.
                 Set bird y to 0.
+                Set velocity to 0.
     If w4z is less than 3:
         If w4z is greater than -3:
             If bird_y is less than w4g minus gap_half:
@@ -220,8 +228,10 @@ every 30 ms:
                 Show text "Game Over!".
                 Set bird_y to 0.
                 Set bird y to 0.
+                Set velocity to 0.
             If bird_y is greater than w4g plus gap_half:
                 Set game_over to true.
                 Show text "Game Over!".
                 Set bird_y to 0.
                 Set bird y to 0.
+                Set velocity to 0.

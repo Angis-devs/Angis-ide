@@ -911,6 +911,7 @@ class ParserTests(unittest.TestCase):
             Create dictionary named player with health: 100, name: Ada.
             Http post https://example.com with body hello as response.
             Debug all.
+            Debug trace.
             Export app to file /tmp/app.html.
             """
         )
@@ -919,7 +920,9 @@ class ParserTests(unittest.TestCase):
         self.assertIsInstance(instructions[2], CreateMap)
         self.assertIsInstance(instructions[3], HttpRequest)
         self.assertIsInstance(instructions[4], DebugState)
-        self.assertIsInstance(instructions[5], ExportApp)
+        self.assertIsInstance(instructions[5], DebugState)
+        self.assertEqual(instructions[5].target, "trace")
+        self.assertIsInstance(instructions[6], ExportApp)
 
     def test_ui_media_and_sound_phrases_parse(self):
         instructions = parse(
@@ -1123,6 +1126,22 @@ class ParserTests(unittest.TestCase):
         self.assertIsInstance(instructions[-1], DebugState)
         self.assertEqual(instructions[-1].target, "capabilities")
 
+    def test_capability_check_phrases_parse(self):
+        instructions = parse(
+            """
+            Check capability folder_packages as canUsePackages.
+            See if capabilities math.sqrt as canUseSqrt.
+            Use capabilities has with name: runtime as canUseRuntime.
+            """
+        )
+
+        self.assertTrue(all(isinstance(instruction, UseStdLibAction) for instruction in instructions))
+        self.assertEqual(instructions[0].module, "capabilities")
+        self.assertEqual(instructions[0].action, "has")
+        self.assertEqual(instructions[0].args["name"], "folder_packages")
+        self.assertEqual(instructions[1].args["name"], "math.sqrt")
+        self.assertEqual(instructions[2].action, "has")
+
     def test_include_file_parses_across_angis_files(self):
         with TemporaryDirectory() as temp_dir:
             base = Path(temp_dir)
@@ -1134,6 +1153,79 @@ class ParserTests(unittest.TestCase):
 
         self.assertEqual(len(instructions), 2)
         self.assertIsInstance(instructions[0], Print)
+
+    def test_angis_module_import_parses_namespaced_functions(self):
+        with TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            (base / "math_tools.angis").write_text(
+                """
+                Define greet with name:
+                    Return, name.
+
+                Define double with value:
+                    Return, value * 2.
+                """,
+                encoding="utf-8",
+            )
+            main = base / "main.angis"
+            main.write_text(
+                """
+                use module math_tools.angis as tools
+                Call, tools.greet with Ada as message.
+                Call, tools.double with 6 as doubled.
+                """,
+                encoding="utf-8",
+            )
+
+            instructions = parse_file(main)
+
+        self.assertEqual(len(instructions), 4)
+        self.assertIsInstance(instructions[0], FunctionDef)
+        self.assertEqual(instructions[0].name, "tools_greet")
+        self.assertIsInstance(instructions[1], FunctionDef)
+        self.assertEqual(instructions[1].name, "tools_double")
+        self.assertIsInstance(instructions[2], ObjectMethodCall)
+        self.assertEqual((instructions[2].object_name, instructions[2].method_name), ("tools", "greet"))
+        self.assertIsInstance(instructions[3], ObjectMethodCall)
+        self.assertEqual((instructions[3].object_name, instructions[3].method_name), ("tools", "double"))
+
+    def test_angis_package_import_parses_folder_namespaces(self):
+        with TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            package = base / "tools"
+            (package / "math").mkdir(parents=True)
+            (package / "text").mkdir()
+            (package / "math" / "numbers.angis").write_text(
+                """
+                Define double with value:
+                    Return, value * 2.
+                """,
+                encoding="utf-8",
+            )
+            (package / "text" / "names.angis").write_text(
+                """
+                Define echo with value:
+                    Return, value.
+                """,
+                encoding="utf-8",
+            )
+            main = base / "main.angis"
+            main.write_text(
+                """
+                use package tools as kit
+                Call, kit.math.numbers.double with 6 as doubled.
+                Call, kit.text.names.echo with Ada as name.
+                """,
+                encoding="utf-8",
+            )
+
+            instructions = parse_file(main)
+
+        self.assertEqual(len(instructions), 4)
+        self.assertEqual(instructions[0].name, "kit_math_numbers_double")
+        self.assertEqual(instructions[1].name, "kit_text_names_echo")
+        self.assertEqual((instructions[2].object_name, instructions[2].method_name), ("kit", "math.numbers.double"))
+        self.assertEqual((instructions[3].object_name, instructions[3].method_name), ("kit", "text.names.echo"))
 
     def test_phrase_library_file_defines_reusable_phrases(self):
         with TemporaryDirectory() as temp_dir:

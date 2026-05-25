@@ -1,0 +1,48 @@
+# Cyber Garden Demo
+# This showcases natural phrasing, animations, and interactivity in Angis.
+
+App "Cyber Garden"
+Scene "canvas"
+Window size 800 by 600.
+Dark background.
+
+# Natural variable assignment (newly supported)
+garden_power = 100
+weather = "Neon Rain"
+
+Show "Welcome to the Cyber Garden"
+Show "Garden Power: " + garden_power
+
+# Create some animated 'plants'
+Create circle named bloom1 at x 200 y 400 z 1
+Set bloom1.color to "#a855f7"
+Set bloom1.size to 40
+
+Create circle named bloom2 at x 400 y 450 z 2
+Set bloom2.color to "#38bdf8"
+Set bloom2.size to 60
+
+Create circle named bloom3 at x 600 y 420 z 1
+Set bloom3.color to "#facc15"
+Set bloom3.size to 30
+
+# Animate them to pulse
+Animate bloom1 up by 2 every 100 milliseconds
+Animate bloom2 up by 1 every 150 milliseconds
+Animate bloom3 up by 3 every 80 milliseconds
+
+# Interactions
+When mouse clicked:
+    Say "You touched the digital soil."
+    Add 1 to garden_power
+    Set bloom2.color to "#f43f5e"
+    Show "Power surging: " + garden_power
+
+On key space pressed:
+    Say "Rebooting the garden..."
+    Set bloom1.color to "#a855f7"
+    Set bloom2.color to "#38bdf8"
+    Set bloom3.color to "#facc15"
+
+# Italian fallback usage
+mostra "Il giardino è vivo"

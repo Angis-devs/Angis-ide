@@ -24,8 +24,34 @@ def run_tk_app(app: AppSpec, instruction_runner: Callable[[list[object]], None],
     root.title(app.title)
     root.geometry(f"{app.width}x{app.height}")
     root.resizable(False, False)
-    canvas = tk.Canvas(root, width=app.width, height=app.height, bg=app.bg, highlightthickness=0)
+    _bg_colors = {"dark": "#0f172a", "black": "#111827", "white": "#ffffff", "blue": "#2563eb", "red": "#dc2626", "green": "#16a34a", "yellow": "#eab308", "purple": "#9333ea", "gray": "#6b7280", "grey": "#6b7280"}
+    _bg = _bg_colors.get(str(app.bg).strip().lower(), str(app.bg)) if app.bg else "#ffffff"
+    canvas = tk.Canvas(root, width=app.width, height=app.height, bg=_bg, highlightthickness=0)
     canvas.pack(fill="both", expand=True)
+
+    def _color(value: object) -> str:
+        if not isinstance(value, str):
+            return "#2563eb"
+        v = value.strip().lower()
+        named = {
+            "red": "#dc2626", "green": "#16a34a", "blue": "#2563eb",
+            "yellow": "#eab308", "purple": "#9333ea", "orange": "#ea580c",
+            "pink": "#ec4899", "brown": "#92400e", "gray": "#6b7280",
+            "grey": "#6b7280", "black": "#111827", "white": "#ffffff",
+            "cyan": "#06b6d4", "lime": "#65a30d", "teal": "#0d9488",
+            "indigo": "#4f46e5", "violet": "#8b5cf6", "fuchsia": "#d946ef",
+            "rose": "#f43f5e", "amber": "#d97706", "emerald": "#059669",
+            "sky": "#0284c7", "slate": "#475569", "zinc": "#52525b",
+            "neutral": "#525252", "stone": "#57534e",
+            "dark": "#0f172a", "darkgreen": "#166534", "darkred": "#991b1b",
+            "lightgray": "#d1d5db", "lightgrey": "#d1d5db",
+            "gold": "#ca8a04", "silver": "#9ca3af",
+        }
+        if v in named:
+            return named[v]
+        if v.startswith("#") and len(v) in {4, 7}:
+            return v
+        return "#2563eb"
 
     objects: dict[str, dict[str, Any]] = {}
     canvas_ids: dict[str, list[int]] = {}
@@ -48,30 +74,6 @@ def run_tk_app(app: AppSpec, instruction_runner: Callable[[list[object]], None],
         }
         objects[obj.name] = ob
         canvas_ids[obj.name] = []
-
-    def _color(value: object) -> str:
-        if not isinstance(value, str):
-            return "#2563eb"
-        v = value.strip().lower()
-        named = {
-            "red": "#dc2626", "green": "#16a34a", "blue": "#2563eb",
-            "yellow": "#eab308", "purple": "#9333ea", "orange": "#ea580c",
-            "pink": "#ec4899", "brown": "#92400e", "gray": "#6b7280",
-            "grey": "#6b7280", "black": "#111827", "white": "#ffffff",
-            "cyan": "#06b6d4", "lime": "#65a30d", "teal": "#0d9488",
-            "indigo": "#4f46e5", "violet": "#8b5cf6", "fuchsia": "#d946ef",
-            "rose": "#f43f5e", "amber": "#d97706", "emerald": "#059669",
-            "sky": "#0284c7", "slate": "#475569", "zinc": "#52525b",
-            "neutral": "#525252", "stone": "#57534e",
-            "darkgreen": "#166534", "darkred": "#991b1b",
-            "lightgray": "#d1d5db", "lightgrey": "#d1d5db",
-            "gold": "#ca8a04", "silver": "#9ca3af",
-        }
-        if v in named:
-            return named[v]
-        if v.startswith("#") and len(v) in {4, 7}:
-            return v
-        return "#2563eb"
 
     def _font(size: int = 14, bold: bool = False, family: str = "Segoe UI") -> tuple[str, int, str]:
         weight = "bold" if bold else "normal"

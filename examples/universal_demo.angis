@@ -1,0 +1,47 @@
+# Universal Angis Demo
+# This demo combines Visuals, Data, Networking, and Business Logic
+# using multiple languages and AI fallbacks.
+
+# 1. VISUALS (in English)
+App "Data Center"
+Scene "canvas"
+Window size 800 by 600.
+Dark background.
+
+Create circle hub at x 400 y 300 z 1
+Set hub.color to "#38bdf8"
+Set hub.size to 100
+
+# 2. DATA & BUSINESS LOGIC (using Italian fallback/first-class)
+set_language "it"
+imposta inventario a []
+mostra "Sistema inizializzato."
+
+# Adding items to inventory (Business Logic)
+aggiungi "Server 1" a inventario
+aggiungi "Router 2" a inventario
+
+# Heuristic assignment (AI Fallback)
+numero_server = 2
+mostra "Server attivi: " + numero_server
+
+# 3. NETWORKING (using Portuguese AI Fallback)
+set_language "pt"
+mostre "Conectando ao banco de dados..."
+
+# AI Heuristic for fetch (Networking)
+buscar de https://api.example.com/status
+mostre "Dados recebidos."
+
+# 4. DATA (in English again)
+set_language "en"
+Open database "assets/angis_demo.sqlite" as db
+Execute sql "CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, power INTEGER)" on db
+Execute sql "INSERT INTO stats (power) VALUES (100)" on db
+Show "Local database updated."
+
+# Interaction
+When hub is clicked:
+    Say "Networking pulse sent!"
+    Set hub.color to "#facc15"
+    Animate hub up by 5 every 50 milliseconds

@@ -1,0 +1,31 @@
+store "🌟 Welcome to Positive Vibes 🌟" as title
+show title
+show ""
+
+Set day to 1.
+
+store "you are enough" as a1
+store "today is a gift" as a2
+store "keep shining" as a3
+store "be kind to yourself" as a4
+store "you matter" as a5
+store "breathe and smile" as a6
+store "progress not perfection" as a7
+
+show a1
+show a2
+show a3
+show a4
+show a5
+show a6
+show a7
+
+show ""
+show "= = = = = = = = = = = = = = = = ="
+show "Remember: you are amazing!"
+show "Keep being awesome."
+show "Spread kindness everywhere you go."
+show "= = = = = = = = = = = = = = = = ="
+
+store "Be the reason someone smiles today." as bonus
+show bonus

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from .ir import (
     Access,
     Add,
@@ -21,6 +23,7 @@ from .ir import (
     AssertTrue,
     BinaryOp,
     Break,
+    CallExpr,
     Comprehension,
     Condition,
     Continue,
@@ -243,9 +246,14 @@ def _emit(instr: object, lines: list[str], indent: int) -> None:
 
     elif isinstance(instr, EventBlock):
         key = f"{instr.kind}:{instr.name.lower()}"
+        func_name = "_event_" + re.sub(r"\W+", "_", key).strip("_")
         lines.append(f"{prefix}# event {key}")
-        for child in instr.body:
-            _emit(child, lines, indent + 1)
+        lines.append(f"{prefix}def {func_name}():")
+        if instr.body:
+            for child in instr.body:
+                _emit(child, lines, indent + 1)
+        else:
+            lines.append(f"{prefix}    pass")
 
     elif isinstance(instr, FileAttach):
         path = _format_expr(instr.path)
@@ -450,11 +458,11 @@ def _emit(instr: object, lines: list[str], indent: int) -> None:
             lines.append(f"{prefix}{instr.object_name}.{instr.method_name}({args})")
 
     elif isinstance(instr, DefineBlueprint):
-        items = ", ".join(f"{k}={_format_expr(v)}" for k, v in instr.items.items())
+        items = ", ".join(f"{k!r}: {_format_expr(v)}" for k, v in instr.items.items())
         lines.append(f"{prefix}Blueprint_{instr.name} = {{{items}}}")
 
     elif isinstance(instr, CreateFromBlueprint):
-        items = ", ".join(f"{k}={_format_expr(v)}" for k, v in instr.items.items())
+        items = ", ".join(f"{k!r}: {_format_expr(v)}" for k, v in instr.items.items())
         lines.append(f"{prefix}{instr.name} = _create_from_blueprint({instr.blueprint_name!r}, {{}}, {{{items}}})")
 
     elif isinstance(instr, AppBackground):
@@ -499,6 +507,9 @@ def _format_expr(expr: Expression) -> str:
     if isinstance(expr, LengthOf):
         val = _format_expr(expr.value)
         return f"len({val})"
+    if isinstance(expr, CallExpr):
+        args = ", ".join(_format_expr(arg) for arg in expr.args)
+        return f"{expr.name}({args})"
     if isinstance(expr, RangeExpr):
         start = _format_expr(expr.start)
         end = _format_expr(expr.end)

@@ -1,0 +1,10 @@
+{
+  "title": "Code Anything Native Demo",
+  "scene": "text",
+  "imports": [],
+  "backend": "tk",
+  "layout": {
+    "kind": "free",
+    "columns": 1
+  }
+}

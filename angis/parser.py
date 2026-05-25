@@ -104,6 +104,34 @@ def _expand_includes(source: str, base_path: Path, seen: set[Path]) -> str:
     expanded: list[str] = []
     for line in textwrap.dedent(source).splitlines():
         stripped = line.strip()
+        package_match = re.fullmatch(r"use\s+(?:package|module\s+folder)\s+(.+?)\s+as\s+([^\W\d]\w*)", stripped, re.I)
+        if package_match:
+            raw_path = package_match.group(1).strip().strip('"').strip("'")
+            namespace = package_match.group(2)
+            package_path = (base_path / raw_path).expanduser().resolve()
+            expanded.extend(_expand_module_directory(package_path, namespace, seen))
+            continue
+        selected_function_match = re.fullmatch(r"use\s+functions?\s+(.+?)\s+from\s+module\s+(.+)", stripped, re.I)
+        if selected_function_match:
+            names = [name.strip() for name in selected_function_match.group(1).split(",") if name.strip()]
+            raw_path = selected_function_match.group(2).strip().strip('"').strip("'")
+            module_path = (base_path / raw_path).expanduser().resolve()
+            expanded.append(_expand_selected_module_functions(module_path, names, seen))
+            continue
+        everything_module_match = re.fullmatch(r"use\s+(?:everything|all)\s+from\s+module\s+(.+?)\s+as\s+([^\W\d]\w*)", stripped, re.I)
+        if everything_module_match:
+            raw_path = everything_module_match.group(1).strip().strip('"').strip("'")
+            namespace = everything_module_match.group(2)
+            module_path = (base_path / raw_path).expanduser().resolve()
+            expanded.append(_expand_module_file(module_path, namespace, seen))
+            continue
+        module_match = re.fullmatch(r"use\s+module\s+(.+?)\s+as\s+([^\W\d]\w*)", stripped, re.I)
+        if module_match:
+            raw_path = module_match.group(1).strip().strip('"').strip("'")
+            namespace = module_match.group(2)
+            module_path = (base_path / raw_path).expanduser().resolve()
+            expanded.append(_expand_module_file(module_path, namespace, seen))
+            continue
         match = re.fullmatch(r"(?:include|import\s+file|use\s+phrase\s+(?:library|pack))\s+(.+)", stripped, re.I)
         if not match:
             expanded.append(line)
@@ -121,6 +149,114 @@ def _expand_includes(source: str, base_path: Path, seen: set[Path]) -> str:
         expanded.append(_expand_includes(include_path.read_text(encoding="utf-8"), include_path.parent, seen))
         seen.remove(include_path)
     return "\n".join(expanded)
+
+
+def _expand_module_file(module_path: Path, namespace: str, seen: set[Path]) -> str:
+    if module_path.suffix != ".angis":
+        raise AngisSyntaxError("Module files must end in .angis.")
+    if module_path in seen:
+        raise AngisSyntaxError(f"Recursive module import blocked for {module_path}.")
+    seen.add(module_path)
+    expanded_source = _expand_includes(module_path.read_text(encoding="utf-8"), module_path.parent, seen)
+    seen.remove(module_path)
+    return _namespace_module_source(expanded_source, namespace)
+
+
+def _expand_selected_module_functions(module_path: Path, names: list[str], seen: set[Path]) -> str:
+    if module_path.suffix != ".angis":
+        raise AngisSyntaxError("Module files must end in .angis.")
+    if module_path in seen:
+        raise AngisSyntaxError(f"Recursive module import blocked for {module_path}.")
+    wanted = {name.strip() for name in names if name.strip()}
+    if not wanted:
+        raise AngisSyntaxError("Use function from module needs at least one function name.")
+    seen.add(module_path)
+    expanded_source = _expand_includes(module_path.read_text(encoding="utf-8"), module_path.parent, seen)
+    seen.remove(module_path)
+    selected = _select_module_function_blocks(expanded_source, wanted)
+    missing = wanted - _module_function_names(selected)
+    if missing:
+        raise AngisSyntaxError(f"Module {module_path.name} does not define function(s): {', '.join(sorted(missing))}.")
+    return selected
+
+
+def _select_module_function_blocks(source: str, names: set[str]) -> str:
+    lines = source.splitlines()
+    selected: list[str] = []
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        stripped = _strip_trailing_period(line.strip().removesuffix(":").strip())
+        function_match = re.fullmatch(
+            r"(?:define|function)\s*,?\s*(?P<name>[^\W\d]\w*)"
+            r"(?:\s+with\s+.+?)?"
+            r"(?:\s*->\s*(?:text|string|number|int|decimal|float|bool|boolean|list|map|dict|any))?",
+            stripped,
+            re.I,
+        )
+        if not function_match or function_match.group("name") not in names:
+            index += 1
+            continue
+        start = index
+        index += 1
+        while index < len(lines):
+            next_line = lines[index]
+            if next_line.strip() and len(next_line) - len(next_line.lstrip(" ")) == 0:
+                break
+            index += 1
+        selected.extend(lines[start:index])
+        selected.append("")
+    return "\n".join(selected)
+
+
+def _expand_module_directory(directory: Path, namespace: str, seen: set[Path]) -> list[str]:
+    if not directory.is_dir():
+        raise AngisSyntaxError("Package imports need a folder.")
+    expanded: list[str] = []
+    for module_path in sorted(directory.rglob("*.angis")):
+        relative_namespace = "_".join([namespace, *module_path.relative_to(directory).with_suffix("").parts])
+        expanded.append(_expand_module_file(module_path.resolve(), relative_namespace, seen))
+    return expanded
+
+
+def _namespace_module_source(source: str, namespace: str) -> str:
+    names = _module_function_names(source)
+    if not names:
+        return source
+    rewritten: list[str] = []
+    for line in source.splitlines():
+        rewritten.append(_namespace_module_line(line, namespace, names))
+    return "\n".join(rewritten)
+
+
+def _module_function_names(source: str) -> set[str]:
+    names: set[str] = set()
+    for line in source.splitlines():
+        header = _strip_trailing_period(line.strip().removesuffix(":").strip())
+        command_match = re.fullmatch(r"(?:define\s+command|command)\s*,?\s*(?P<body>.+)", header, re.I)
+        if command_match:
+            name, _params, _param_types = _parse_command_definition(command_match.group("body"))
+            names.add(name)
+            continue
+        function_match = re.fullmatch(
+            r"(?:define|function)\s*,?\s*(?P<name>[^\W\d]\w*)"
+            r"(?:\s+with\s+.+?)?"
+            r"(?:\s*->\s*(?:text|string|number|int|decimal|float|bool|boolean|list|map|dict|any))?",
+            header,
+            re.I,
+        )
+        if function_match:
+            names.add(function_match.group("name"))
+    return names
+
+
+def _namespace_module_line(line: str, namespace: str, names: set[str]) -> str:
+    for name in sorted(names, key=len, reverse=True):
+        prefixed = f"{namespace}_{name}"
+        line = re.sub(rf"(?i)(\b(?:define|function)\s*,?\s*){re.escape(name)}\b", rf"\1{prefixed}", line)
+        line = re.sub(rf"(?i)(\b(?:call|run)\s*,?\s*){re.escape(name)}\b", rf"\1{prefixed}", line)
+        line = re.sub(rf"(?i)(\b(?:spawn|background|async)\s+(?:call\s+)?)({re.escape(name)})\b", rf"\1{prefixed}", line)
+    return line
 
 
 def _expand_include_directory(directory: Path, seen: set[Path]) -> list[str]:
@@ -152,7 +288,23 @@ def _parse_block(lines: list[SourceLine], start: int, indent: int, command_templ
             index += 1
             continue
         try:
-            if _is_block_header(line.text):
+            python_block_match = re.fullmatch(r"(?:run|exec|execute)\s+python\s*:", line.text, re.I)
+            if python_block_match:
+                child_indent = _next_indent(lines, index, indent)
+                code_lines: list[str] = []
+                next_index = index + 1
+                while next_index < len(lines):
+                    child_line = lines[next_index]
+                    if child_line.indent <= indent:
+                        break
+                    relative_indent = max(0, child_line.indent - child_indent)
+                    code_lines.append(" " * relative_indent + child_line.text)
+                    next_index += 1
+                if not code_lines:
+                    raise AngisSyntaxError("Python block needs indented code.")
+                instructions.append(PythonExec(code="\n".join(code_lines), source=line.text, confidence=0.99))
+                index = next_index
+            elif _is_block_header(line.text):
                 child_indent = _next_indent(lines, index, indent)
                 body, next_index = _parse_block(lines, index + 1, child_indent, command_templates)
                 instruction = _parse_block_header(line, body)
@@ -436,15 +588,15 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
         )
 
     spawn_match = re.fullmatch(
-        r"(?:spawn|background|async)\s+(?:call\s+)?(?P<name>[^\W\d]\w*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[^\W\d]\w*))?",
+        r"(?:(?:spawn|background|async)\s+(?:call\s+)?(?P<name>[^\W\d]\w*)(?:\s+with\s+(?P<args>.+?))?(?:\s+as\s+(?P<result>[^\W\d]\w*))?|(?:run|call)\s+(?P<run_name>[^\W\d]\w*)\s+in\s+background(?:\s+with\s+(?P<run_args>.+?))?(?:\s+as\s+(?P<run_result>[^\W\d]\w*))?)",
         normalized,
         re.I,
     )
     if spawn_match:
         return Spawn(
-            name=spawn_match.group("name"),
-            args=_parse_call_args(spawn_match.group("args") or ""),
-            result_name=spawn_match.group("result") or "",
+            name=spawn_match.group("name") or spawn_match.group("run_name"),
+            args=_parse_call_args(spawn_match.group("args") or spawn_match.group("run_args") or ""),
+            result_name=spawn_match.group("result") or spawn_match.group("run_result") or "",
             source=line.text,
             confidence=0.99,
         )

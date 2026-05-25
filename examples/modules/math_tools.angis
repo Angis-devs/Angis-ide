@@ -1,0 +1,7 @@
+# Reusable Angis module
+
+Define greet with name:
+    Return, name.
+
+Define double with value:
+    Return, value * 2.

@@ -1,0 +1,9 @@
+# Capability check demo
+
+Check capability folder_packages as canUsePackages.
+Check capability made_up_feature as canUseMadeUp.
+Use capabilities has with name: math.sqrt as canUseSqrt.
+
+Show canUsePackages.
+Show canUseMadeUp.
+Show canUseSqrt.

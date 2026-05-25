@@ -25,6 +25,7 @@ from .ir import (
     AppText,
     AssertTrue,
     BinaryOp,
+    CallExpr,
     Comprehension,
     CreateFromBlueprint,
     CreateObject,
@@ -175,9 +176,17 @@ def parse_atom(text: str) -> Expression:
     if py_match:
         return PythonEval(expression=py_match.group("code"))
 
-    py_inline = re.fullmatch(r"\{\{(?:py|python):(?P<code>.+)\}\}", value)
-    if py_inline:
-        return PythonEval(expression=py_inline.group("code"))
+    call_match = re.fullmatch(r"(?:result\s+of|value\s+of|output\s+of)\s+(?P<name>[^\W\d]\w*)\s*(?:with\s+(?P<args>.+))?", value, re.I)
+    if call_match:
+        raw_args = call_match.group("args") or ""
+        args = [parse_expression(item.strip()) for item in _split_items(raw_args) if item.strip()]
+        return CallExpr(name=call_match.group("name"), args=args)
+
+    paren_call_match = re.fullmatch(r"(?P<name>[^\W\d]\w*)\((?P<args>.*)\)", value)
+    if paren_call_match:
+        raw_args = paren_call_match.group("args") or ""
+        args = [parse_expression(item.strip()) for item in _split_items(raw_args) if item.strip()]
+        return CallExpr(name=paren_call_match.group("name"), args=args)
 
     if lowered in {"true", "yes", "on"}:
         return True
@@ -217,6 +226,10 @@ def parse_atom(text: str) -> Expression:
         rest = value[4:].strip()
         if rest:
             return UnaryOp("not", parse_atom(rest))
+    if value.startswith("~") and len(value) > 1:
+        rest = value[1:].strip()
+        if rest:
+            return UnaryOp("~", parse_atom(rest))
     if value.startswith("-") and len(value) > 1 and not re.fullmatch(r"[+-]?\d+(\.\d+)?", value):
         rest = value[1:].strip()
         if rest:
@@ -263,8 +276,22 @@ def parse_expression(text: str) -> Expression:
     if py_fn_match:
         return PythonEval(expression=py_fn_match.group("code"))
 
+    for op in ("<<", ">>"):
+        idx = _find_operator_index(value, op)
+        if idx is not None:
+            left = value[:idx].strip()
+            right = value[idx + len(op):].strip()
+            if left and right:
+                return BinaryOp(op, parse_expression(left), parse_expression(right))
     for operators, word_operators in (
         (("==", "!=", ">=", "<=", ">", "<"), (("is", "=="), ("equals", "=="), ("equal to", "=="), ("same as", "=="), ("is not", "!="), ("not equal to", "!="), ("greater than or equal", ">="), ("at least", ">="), ("less than or equal", "<="), ("at most", "<="), ("greater than", ">"), ("bigger than", ">"), ("more than", ">"), ("less than", "<"), ("smaller than", "<"), ("under", "<"))),
+        (("|", "^", "&"), ()),
+    ):
+        split = _split_expression(value, operators) or _split_word_expression(value, word_operators)
+        if split is not None:
+            left, operator, right = split
+            return BinaryOp(operator, parse_expression(left), parse_expression(right))
+    for operators, word_operators in (
         (("+", "-"), (("plus", "+"), ("added to", "+"), ("minus", "-"))),
         (("*", "/", "%"), (("times", "*"), ("multiplied by", "*"), ("divided by", "/"), ("over", "/"), ("mod", "%"), ("modulo", "%"), ("remainder", "%"))),
         ((), (("to the power of", "**"), ("raised to", "**"), ("to the power", "**"))),
@@ -280,7 +307,7 @@ def parse_text_value(text: str) -> Expression:
     """Parse values where plain human text should become a string."""
     value = text.strip()
     lowered = value.lower()
-    if lowered.startswith(("set of ", "tuple of ", "for each ", "lambda ", "arrow ", "fn ")):
+    if lowered.startswith(("set of ", "tuple of ", "for each ", "lambda ", "arrow ", "fn ", "result of ", "value of ", "output of ")):
         return parse_expression(value)
     if " if " in lowered and " else " in lowered:
         return parse_expression(value)
@@ -336,6 +363,12 @@ def _looks_like_expression(value: str) -> bool:
         return True
     if re.fullmatch(r"(?:length|count|size)\s+of\s+.+|number\s+of\s+(?:items|things|entries|letters)\s+in\s+.+", stripped, re.I):
         return True
+    if stripped.startswith("~") and not re.fullmatch(r"[^\W\d]\w*", stripped):
+        try:
+            parse_atom(stripped)
+            return True
+        except AngisSyntaxError:
+            return False
     if stripped.startswith("(") or stripped.startswith("-(") or stripped.startswith("not "):
         try:
             parse_expression(stripped)
@@ -360,13 +393,17 @@ def _looks_like_expression(value: str) -> bool:
     indexed_access = r"(?:(?:item|index)\s+[+-]?\d+|first|second|third|fourth|fifth|last)\s+(?:item|letter|character|entry)?\s*of\s+[^\W\d]\w*(?:\.[^\W\d]\w*)?(?:\[[^\]]+\])?"
     slice_access = r"(?:first\s+\d+\s+(?:items|letters|characters|entries)|(?:items|letters|characters|entries)\s+[+-]?\d+\s+(?:to|through)\s+[+-]?\d+)\s+of\s+[^\W\d]\w*(?:\.[^\W\d]\w*)?(?:\[[^\]]+\])?"
     paren_atom = r"\([^()]+\)"
-    unary_atom = r"-[^\W\d]\w*|not\s+[^\W\d]\w*"
+    unary_atom = r"~[^\W\d]\w*|-[^\W\d]\w*|not\s+[^\W\d]\w*"
     atom = rf"(?:{slice_access}|{indexed_access}|{named_access}|{paren_atom}|{unary_atom}|[^\W\d]\w*(?:\.[^\W\d]\w*)?(?:\[[^\]]+\])?|[+-]?\d+(?:\.\d+)?)"
-    if re.search(r"[+\-*/%]", stripped):
+    if re.search(r"<<|>>", stripped):
+        return bool(re.fullmatch(rf"\s*{atom}(?:\s*(?:<<|>>)\s*{atom})+\s*", stripped))
+    if re.search(r"[+\-*/%&|^<>]", stripped):
         if re.fullmatch(r"[^\W\d]\w*(?:-[^\W\d]\w*)+", stripped):
             return False
         if re.fullmatch(r"\d{4}-\d{1,2}(?:-\d{1,2})?", stripped):
             return False
+        if re.search(r"[&|^]", stripped):
+            return bool(re.fullmatch(rf"\s*{atom}(?:\s*[&|^<>]{{1,2}}?\s*{atom})+\s*", stripped))
         return bool(re.fullmatch(rf"\s*{atom}(?:\s*[+\-*/%]\s*{atom})+\s*", stripped))
     word_operator = r"(?:plus|added\s+to|minus|times|multiplied\s+by|divided\s+by|over|mod|modulo|remainder|to\s+the\s+power\s+(?:of)?|raised\s+to)"
     if re.search(r"(?:plus|minus|times|divided|over|mod|modulo|remainder|power|raised)", stripped, re.I):
@@ -497,6 +534,33 @@ def _split_expression(value: str, operators: tuple[str, ...]) -> tuple[str, str,
         right = value[index + 1 :].strip()
         if left and right:
             return left, char, right
+    return None
+
+
+def _find_operator_index(value: str, op: str) -> int | None:
+    quote: str | None = None
+    depth = 0
+    max_start = len(value) - len(op)
+    for index in range(max_start, -1, -1):
+        char = value[index]
+        if char in {"'", '"'}:
+            quote = None if quote == char else char
+            continue
+        if quote is not None:
+            continue
+        if char == ")":
+            depth += 1
+            continue
+        if char == "(":
+            depth -= 1
+            continue
+        if depth > 0:
+            continue
+        if value[index:index+len(op)] == op:
+            left = value[:index].strip()
+            right = value[index + len(op):].strip()
+            if left and right:
+                return index
     return None
 
 
@@ -830,7 +894,7 @@ def _create_button(match: re.Match[str], source: str, confidence: float) -> Crea
         x=int(match.groupdict().get("x") or 0),
         y=int(match.groupdict().get("y") or 0),
         z=int(match.groupdict().get("z") or 0),
-        text=match.group("text").strip(),
+        text=_strip_optional_quotes(match.group("text").strip()),
         source=source,
         confidence=confidence,
     )
@@ -838,12 +902,12 @@ def _create_button(match: re.Match[str], source: str, confidence: float) -> Crea
 
 def _create_text_object(match: re.Match[str], source: str, confidence: float) -> CreateObject:
     return CreateObject(
-        kind="text",
+        kind="label" if re.search(r"^\s*create\s+label\b", source, re.I) else "text",
         name=_parse_name(match.group("name")),
         x=int(match.group("x")),
         y=int(match.group("y")),
         z=int(match.group("z") or 0),
-        text=match.group("text").strip(),
+        text=_strip_optional_quotes(match.group("text").strip()),
         source=source,
         confidence=confidence,
     )
@@ -856,6 +920,73 @@ def _create_generic_object(match: re.Match[str], source: str, confidence: float)
         x=int(match.group("x")),
         y=int(match.group("y")),
         z=int(match.group("z") or 0),
+        source=source,
+        confidence=confidence,
+    )
+
+
+def _create_input_widget(match: re.Match[str], source: str, confidence: float) -> CreateObject:
+    placeholder = match.groupdict().get("placeholder") or ""
+    return CreateObject(
+        kind="input",
+        name=_parse_name(match.group("name")),
+        x=int(match.group("x")),
+        y=int(match.group("y")),
+        z=int(match.groupdict().get("z") or 0),
+        properties={"placeholder": _strip_optional_quotes(placeholder)} if placeholder else {},
+        source=source,
+        confidence=confidence,
+    )
+
+
+def _create_slider_widget(match: re.Match[str], source: str, confidence: float) -> CreateObject:
+    return CreateObject(
+        kind="slider",
+        name=_parse_name(match.group("name")),
+        x=int(match.group("x")),
+        y=int(match.group("y")),
+        z=int(match.groupdict().get("z") or 0),
+        properties={"min": int(match.group("min")), "max": int(match.group("max")), "value": int(match.group("value"))},
+        source=source,
+        confidence=confidence,
+    )
+
+
+def _create_checkbox_widget(match: re.Match[str], source: str, confidence: float) -> CreateObject:
+    return CreateObject(
+        kind="checkbox",
+        name=_parse_name(match.group("name")),
+        x=int(match.group("x")),
+        y=int(match.group("y")),
+        z=int(match.groupdict().get("z") or 0),
+        text=_strip_optional_quotes(match.groupdict().get("text") or ""),
+        properties={"checked": bool(match.groupdict().get("checked"))},
+        source=source,
+        confidence=confidence,
+    )
+
+
+def _create_shape_object(match: re.Match[str], source: str, confidence: float) -> CreateObject:
+    groups = match.groupdict()
+    kind = groups["kind"].lower()
+    properties: dict[str, Expression] = {}
+    if groups.get("size"):
+        properties["size"] = int(groups["size"])
+        properties["width"] = int(groups["size"])
+        properties["height"] = int(groups["size"])
+    if groups.get("width"):
+        properties["width"] = int(groups["width"])
+    if groups.get("height"):
+        properties["height"] = int(groups["height"])
+    if groups.get("color"):
+        properties["color"] = groups["color"].lower()
+    return CreateObject(
+        kind=kind,
+        name=_parse_name(groups["name"]),
+        x=int(groups["x"]),
+        y=int(groups["y"]),
+        z=int(groups.get("z") or 0),
+        properties=properties,
         source=source,
         confidence=confidence,
     )
@@ -988,13 +1119,13 @@ def _create_from_blueprint(match: re.Match[str], source: str, confidence: float)
     return CreateFromBlueprint(
         blueprint_name=_parse_name(match.group("blueprint")),
         name=_parse_name(match.group("name")),
-        items=_parse_map_items(match.group("items") or ""),
+        items=_parse_map_items(match.group("items") or "", value_parser=parse_text_value),
         source=source,
         confidence=confidence,
     )
 
 
-def _parse_map_items(raw: str | None) -> dict[str, Expression]:
+def _parse_map_items(raw: str | None, value_parser: Callable[[str], Expression] = _parse_property_value) -> dict[str, Expression]:
     raw_items = (raw or "").strip()
     items: dict[str, Expression] = {}
     if raw_items:
@@ -1004,7 +1135,7 @@ def _parse_map_items(raw: str | None) -> dict[str, Expression]:
                 key, separator, value = item.partition("=")
             if not separator:
                 raise AngisSyntaxError("Dictionary items must look like key: value.")
-            items[_parse_map_key(key.strip())] = _parse_property_value(value.strip())
+            items[_parse_map_key(key.strip())] = value_parser(value.strip())
     return items
 
 
@@ -1078,7 +1209,7 @@ def _export_app(match: re.Match[str], source: str, confidence: float) -> ExportA
 
 
 def _package_app(match: re.Match[str], source: str, confidence: float) -> PackageApp:
-    return PackageApp(path=match.group("path").strip(), source=source, confidence=confidence)
+    return PackageApp(path=_strip_optional_quotes(match.group("path").strip()), source=source, confidence=confidence)
 
 
 def _breakpoint(match: re.Match[str], source: str, confidence: float) -> DebugBreakpoint:
@@ -1086,7 +1217,7 @@ def _breakpoint(match: re.Match[str], source: str, confidence: float) -> DebugBr
 
 
 def _open_database(match: re.Match[str], source: str, confidence: float) -> OpenDatabase:
-    return OpenDatabase(path=match.group("path").strip(), name=_parse_name(match.group("name")), source=source, confidence=confidence)
+    return OpenDatabase(path=_strip_optional_quotes(match.group("path").strip()), name=_parse_name(match.group("name")), source=source, confidence=confidence)
 
 
 def _execute_sql(match: re.Match[str], source: str, confidence: float) -> ExecuteSql:
@@ -1539,6 +1670,17 @@ def _time_days_action(action: str) -> InstructionFactory:
     return factory
 
 
+def _capability_has_action(match: re.Match[str], source: str, confidence: float) -> UseStdLibAction:
+    return UseStdLibAction(
+        module="capabilities",
+        action="has",
+        args={"name": _strip_optional_quotes(match.group("value"))},
+        name=_parse_name(match.group("name")),
+        source=source,
+        confidence=confidence,
+    )
+
+
 def _parse_name(text: str) -> str:
     name = text.strip()
     if not re.fullmatch(r"[^\W\d][\w ]*", name):
@@ -1610,6 +1752,15 @@ ASSIGN_NAME = r"(?:set|make|let)\s+(?P<name>[^\W\d]\w*)\s+(?:to|equal|=)\s+"
 LEFT = r"(?P<left>.+?)"
 RIGHT = r"(?P<right>.+?)"
 
+# Angis stdlib module names — blacklist from dynamic Python bridge so
+# "Get list of X as Y" isn't hijacked as a Python module lookup.
+_ANGIS_STDLIB_MODULES = (
+    "math|random|time|json|file|text|csv|data|list|map|path"
+    "|capabilities|convert|bitwise|statistics|socket|url|validation|ai|id|network|security"
+    "|web|package|permission|deploy|testing|shell|buffer|struct|ffi|mmap"
+)
+_DYNAMIC_MODULE = rf"(?!(?:{_ANGIS_STDLIB_MODULES})(?:\s|$))[^\W\d]\w*(?:\.[^\W\d]\w*)*"
+
 
 PATTERNS: tuple[IntentPattern, ...] = (
     IntentPattern(
@@ -1647,6 +1798,12 @@ PATTERNS: tuple[IntentPattern, ...] = (
         re.compile(r"(?:subtract|take)\s+(?P<days>[+-]?\d+)\s+days?\s+from\s+today\s+as\s+(?P<name>[^\W\d]\w*)", re.I),
         1.01,
         _time_days_action("subtract_days"),
+    ),
+    IntentPattern(
+        "USE_STDLIB",
+        re.compile(r"(?:check|see\s+if|ask\s+if)\s+capabilit(?:y|ies)\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I),
+        1.01,
+        _capability_has_action,
     ),
     IntentPattern(
         "USE_STDLIB",
@@ -1967,7 +2124,7 @@ PATTERNS: tuple[IntentPattern, ...] = (
     IntentPattern(
         "USE_STDLIB",
         re.compile(
-            r"use\s+(?P<module>math|random|time|json|file|text|csv|data|list|map|path|capabilities|convert|bitwise|statistics|socket|ai)\s+(?P<action>[^\W\d]\w[\w\s]*?)"
+            r"use\s+(?P<module>math|random|time|json|file|text|csv|data|list|map|path|capabilities|convert|bitwise|statistics|socket|ai|buffer|struct|ffi|mmap)\s+(?P<action>[^\W\d]\w[\w\s]*?)"
             r"(?:\s+with\s+(?P<args>.+?))?\s+as\s+(?P<name>[^\W\d]\w*)",
             re.I,
         ),
@@ -1977,7 +2134,7 @@ PATTERNS: tuple[IntentPattern, ...] = (
     IntentPattern(
         "USE_STDLIB",
         re.compile(
-            r"(?:ask|tell)\s+(?P<module>math|random|time|json|file|text|csv|data|list|map|path|capabilities|convert|bitwise|statistics|socket|ai)\s+to\s+"
+            r"(?:ask|tell)\s+(?P<module>math|random|time|json|file|text|csv|data|list|map|path|capabilities|convert|bitwise|statistics|socket|ai|buffer|struct|ffi|mmap)\s+to\s+"
             r"(?P<action>[^\W\d]\w[\w\s]*?)(?:\s+with\s+(?P<args>.+?))?\s+as\s+(?P<name>[^\W\d]\w*)",
             re.I,
         ),
@@ -1987,7 +2144,7 @@ PATTERNS: tuple[IntentPattern, ...] = (
     IntentPattern(
         "USE_STDLIB",
         re.compile(
-            r"(?:get|run)\s+(?P<module>math|random|time|json|file|text|csv|data|list|map|path|capabilities|convert|bitwise|statistics|socket|ai)\s+"
+            r"(?:get|run)\s+(?P<module>math|random|time|json|file|text|csv|data|list|map|path|capabilities|convert|bitwise|statistics|socket|ai|buffer|struct|ffi|mmap)\s+"
             r"(?P<action>[^\W\d]\w[\w\s]*?)(?:\s+with\s+(?P<args>.+?))?\s+as\s+(?P<name>[^\W\d]\w*)",
             re.I,
         ),
@@ -2072,7 +2229,7 @@ PATTERNS: tuple[IntentPattern, ...] = (
     IntentPattern(
         "CREATE",
         re.compile(
-            r"create\s+text\s+named\s+(?P<name>[^\W\d]\w[\w ]*?)\s+at\s+"
+            r"create\s+(?:text|label)\s+named\s+(?P<name>[^\W\d]\w[\w ]*?)\s+at\s+"
             r"x\s+(?P<x>-?\d+)\s+y\s+(?P<y>-?\d+)(?:\s+z\s+(?P<z>-?\d+))?\s+(?:saying|with\s+text)\s+(?P<text>.+)",
             re.I,
         ),
@@ -2091,6 +2248,30 @@ PATTERNS: tuple[IntentPattern, ...] = (
         ),
         1.0,
         _create_described_object,
+    ),
+    IntentPattern(
+        "CREATE",
+        re.compile(r"create\s+input\s+named\s+(?P<name>[^\W\d]\w[\w ]*?)\s+at\s+x\s+(?P<x>-?\d+)\s+y\s+(?P<y>-?\d+)(?:\s+z\s+(?P<z>-?\d+))?(?:\s+with\s+placeholder\s+(?P<placeholder>.+))?", re.I),
+        1.01,
+        _create_input_widget,
+    ),
+    IntentPattern(
+        "CREATE",
+        re.compile(r"create\s+slider\s+named\s+(?P<name>[^\W\d]\w[\w ]*?)\s+at\s+x\s+(?P<x>-?\d+)\s+y\s+(?P<y>-?\d+)(?:\s+z\s+(?P<z>-?\d+))?\s+from\s+(?P<min>-?\d+)\s+to\s+(?P<max>-?\d+)\s+value\s+(?P<value>-?\d+)", re.I),
+        1.01,
+        _create_slider_widget,
+    ),
+    IntentPattern(
+        "CREATE",
+        re.compile(r"create\s+checkbox\s+named\s+(?P<name>[^\W\d]\w[\w ]*?)\s+at\s+x\s+(?P<x>-?\d+)\s+y\s+(?P<y>-?\d+)(?:\s+z\s+(?P<z>-?\d+))?(?:\s+(?P<checked>checked))?(?:\s+with\s+text\s+(?P<text>.+))?", re.I),
+        1.01,
+        _create_checkbox_widget,
+    ),
+    IntentPattern(
+        "CREATE",
+        re.compile(r"create\s+(?P<kind>circle|ball|rectangle|square|sprite)\s+named\s+(?P<name>[^\W\d]\w[\w ]*?)\s+at\s+x\s+(?P<x>-?\d+)\s+y\s+(?P<y>-?\d+)(?:\s+z\s+(?P<z>-?\d+))?(?:\s+size\s+(?P<size>\d+))?(?:\s+width\s+(?P<width>\d+))?(?:\s+height\s+(?P<height>\d+))?(?:\s+color\s+(?P<color>[^\s]+))?", re.I),
+        1.01,
+        _create_shape_object,
     ),
     IntentPattern(
         "CREATE",
@@ -2283,14 +2464,22 @@ PATTERNS: tuple[IntentPattern, ...] = (
         0.98,
         _remove_property,
     ),
-    IntentPattern("DEBUG", re.compile(r"debug\s+(?P<target>variables|lists|maps|app|imports|capabilities|all)", re.I), 0.99, _debug_state),
+    IntentPattern("DEBUG", re.compile(r"debug\s+(?P<target>variables|lists|maps|app|imports|capabilities|trace|all)", re.I), 0.99, _debug_state),
     IntentPattern("BREAKPOINT", re.compile(r"breakpoint(?:\s+(?P<label>.+))?", re.I), 0.99, _breakpoint),
     IntentPattern("EXPORT", re.compile(r"export\s+app\s+to\s+file\s+(?P<path>.+)", re.I), 0.99, _export_app),
     IntentPattern("PACKAGE", re.compile(r"package\s+app\s+to\s+folder\s+(?P<path>.+)", re.I), 0.99, _package_app),
+    IntentPattern("PACKAGE", re.compile(r"(?:build|make|create)\s+app\s+package\s+(?:in|to)\s+folder\s+(?P<path>.+)", re.I), 0.99, _package_app),
     IntentPattern("DATABASE", re.compile(r"open\s+database\s+file\s+(?P<path>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 0.99, _open_database),
+    IntentPattern("DATABASE", re.compile(r"(?:create|make)\s+database\s+file\s+(?P<path>.+?)\s+named\s+(?P<name>[^\W\d]\w*)", re.I), 0.99, _open_database),
     IntentPattern(
         "SQL",
         re.compile(r"(?:run|execute)\s+sql\s+(?P<sql>.+?)\s+on\s+(?P<database>[^\W\d]\w*)(?:\s+as\s+(?P<name>[^\W\d]\w*))?", re.I),
+        0.99,
+        _execute_sql,
+    ),
+    IntentPattern(
+        "SQL",
+        re.compile(r"(?:run|execute)\s+(?:query|database\s+query)\s+(?P<sql>.+?)\s+on\s+(?P<database>[^\W\d]\w*)(?:\s+as\s+(?P<name>[^\W\d]\w*))?", re.I),
         0.99,
         _execute_sql,
     ),
@@ -2316,6 +2505,16 @@ PATTERNS: tuple[IntentPattern, ...] = (
         "HTTP",
         re.compile(
             r"http\s+(?P<method>get|post|put|delete)\s+(?P<url>https?://\S+)"
+            r"(?:\s+with\s+body\s+(?P<body>.+?))?\s+as\s+(?P<name>[^\W\d]\w*)",
+            re.I,
+        ),
+        0.99,
+        _http_request,
+    ),
+    IntentPattern(
+        "HTTP",
+        re.compile(
+            r"send\s+(?P<method>get|post|put|delete)\s+request\s+to\s+(?P<url>https?://\S+)"
             r"(?:\s+with\s+body\s+(?P<body>.+?))?\s+as\s+(?P<name>[^\W\d]\w*)",
             re.I,
         ),
@@ -3074,6 +3273,95 @@ PATTERNS: tuple[IntentPattern, ...] = (
         0.95,
         _list_values_action("average"),
     ),
+    # --- Native validation/url/object/debug/text/random/path expansion ---
+    IntentPattern("USE_STDLIB", re.compile(r"check\s+if\s+(?P<value>.+?)\s+is\s+(?:an?\s+)?email\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="validation", action="email", args={"value": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"check\s+if\s+(?P<value>.+?)\s+is\s+(?:an?\s+)?url\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="validation", action="url", args={"value": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"check\s+if\s+(?P<value>.+?)\s+is\s+not\s+empty\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="validation", action="nonempty", args={"value": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"check\s+if\s+(?P<value>.+?)\s+is\s+between\s+(?P<min>.+?)\s+and\s+(?P<max>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="validation", action="between", args={"value": parse_text_value(m.group("value")), "min": parse_text_value(m.group("min")), "max": parse_text_value(m.group("max"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"check\s+if\s+(?P<value>.+?)\s+matches\s+(?P<pattern>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="validation", action="matches", args={"value": parse_text_value(m.group("value")), "pattern": _strip_optional_quotes(m.group("pattern"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"encode\s+url\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="url", action="encode", args={"text": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"decode\s+url\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="url", action="decode", args={"text": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"parse\s+url\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="url", action="parse", args={"url": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"resolve\s+path\s+(?P<path>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="path", action="resolve", args={"path": _strip_optional_quotes(m.group("path"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"get\s+random\s+decimal\s+between\s+(?P<min>.+?)\s+and\s+(?P<max>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="random", action="float", args={"min": parse_text_value(m.group("min")), "max": parse_text_value(m.group("max"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"flip\s+coin\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="random", action="boolean", args={}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"get\s+words\s+of\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="text", action="words", args={"text": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"slugify\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="text", action="slugify", args={"text": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"reverse\s+text\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="text", action="reverse", args={"text": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"encode\s+text\s+(?P<value>.+?)\s+as\s+base64\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="encoding", action="base64_encode", args={"text": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"base64\s+decode\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="encoding", action="base64_decode", args={"text": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"hash\s+text\s+(?P<value>.+?)\s+with\s+(?P<algorithm>[^\s]+)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="crypto", action="hash", args={"text": parse_text_value(m.group("value")), "algorithm": _strip_optional_quotes(m.group("algorithm"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"get\s+environment\s+variable\s+(?P<value>[\"'].+?[\"'])\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="system", action="environment", args={"name": _strip_optional_quotes(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"get\s+system\s+platform\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="system", action="platform", args={}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"get\s+system\s+architecture\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="system", action="architecture", args={}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"(?:make|generate|create)\s+(?:a\s+)?(?:uuid|unique\s+id)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="id", action="uuid", args={}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"check\s+if\s+path\s+(?P<path>.+?)\s+is\s+inside\s+folder\s+(?P<folder>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="security", action="path_inside", args={"path": _strip_optional_quotes(m.group("path")), "folder": _strip_optional_quotes(m.group("folder"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"redact\s+secrets\s+in\s+text\s+(?P<text>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="security", action="redact_secrets", args={"text": parse_text_value(m.group("text"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"check\s+if\s+port\s+(?P<host>[^:\s]+):(?P<port>\d+)\s+is\s+open\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="network", action="port_open", args={"host": _strip_optional_quotes(m.group("host")), "port": int(m.group("port"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"get\s+median\s+of\s+(?P<values>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="statistics", action="median", args={"values": parse_text_value(m.group("values"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"get\s+standard\s+deviation\s+of\s+(?P<values>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="statistics", action="stdev", args={"values": parse_text_value(m.group("values"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"(?:define|create|make)\s+web\s+route\s+(?P<method>get|post|put|delete)\s+(?P<path>.+?)\s+returning\s+(?P<response>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="web", action="route", args={"method": m.group("method").upper(), "path": _strip_optional_quotes(m.group("path")), "response": parse_text_value(m.group("response"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"create\s+package\s+manifest\s+named\s+(?P<pkg>.+?)\s+version\s+(?P<version>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="package", action="manifest", args={"package": _strip_optional_quotes(m.group("pkg")), "version": _strip_optional_quotes(m.group("version"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"request\s+permission\s+(?P<resource>[^\s]+)\s+(?P<operation>[^\s]+)\s+for\s+path\s+(?P<path>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="permission", action="request", args={"resource": m.group("resource").lower(), "operation": m.group("operation").lower(), "path": _strip_optional_quotes(m.group("path"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"make\s+deployment\s+plan\s+for\s+app\s+(?P<app>.+?)\s+to\s+folder\s+(?P<target>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="deploy", action="plan", args={"app": _strip_optional_quotes(m.group("app")), "target": _strip_optional_quotes(m.group("target"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"test\s+that\s+(?P<left>.+?)\s+equals\s+(?P<right>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="testing", action="equals", args={"left": parse_text_value(m.group("left")), "right": parse_text_value(m.group("right"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"test\s+that\s+(?P<left>.+?)\s+contains\s+(?P<right>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.04,
+        lambda m, s, c: UseStdLibAction(module="testing", action="contains", args={"left": parse_text_value(m.group("left")), "right": parse_text_value(m.group("right"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"write\s+text\s+(?P<text>.+?)\s+to\s+file\s+(?P<path>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="file", action="write", args={"text": parse_text_value(m.group("text")), "path": _strip_optional_quotes(m.group("path"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"append\s+text\s+(?P<text>.+?)\s+to\s+file\s+(?P<path>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="file", action="append", args={"text": parse_text_value(m.group("text")), "path": _strip_optional_quotes(m.group("path"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"read\s+file\s+(?P<path>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="file", action="read", args={"path": _strip_optional_quotes(m.group("path"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"check\s+if\s+file\s+(?P<path>.+?)\s+exists\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="file", action="exists", args={"path": _strip_optional_quotes(m.group("path"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"list\s+files\s+in\s+folder\s+(?P<path>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="file", action="list_dir", args={"path": _strip_optional_quotes(m.group("path"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"turn\s+(?P<value>.+?)\s+into\s+json\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="json", action="stringify", args={"value": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"find\s+pattern\s+(?P<pattern>.+?)\s+in\s+(?P<text>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="text", action="regex_search", args={"pattern": _strip_optional_quotes(m.group("pattern")), "text": parse_text_value(m.group("text"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"replace\s+pattern\s+(?P<pattern>.+?)\s+in\s+(?P<text>.+?)\s+with\s+(?P<replacement>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.03,
+        lambda m, s, c: UseStdLibAction(module="text", action="regex_replace", args={"pattern": _strip_optional_quotes(m.group("pattern")), "text": parse_text_value(m.group("text")), "replacement": _strip_optional_quotes(m.group("replacement"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"clone\s+object\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="object", action="clone", args={"value": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"compare\s+object\s+(?P<value>.+?)\s+to\s+(?P<other>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="object", action="equals", args={"value": parse_text_value(m.group("value")), "other": parse_text_value(m.group("other"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"list\s+object\s+fields\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="object", action="fields", args={"value": parse_text_value(m.group("value"))}, name=_parse_name(m.group("name")), source=s, confidence=c)),
+    IntentPattern("USE_STDLIB", re.compile(r"show\s+debug\s+trace\s+as\s+(?P<name>[^\W\d]\w*)", re.I), 1.02,
+        lambda m, s, c: UseStdLibAction(module="debug", action="trace", args={}, name=_parse_name(m.group("name")), source=s, confidence=c)),
     # --- Natural window/screen background color ---
     IntentPattern(
         "APP_BG",
@@ -3306,6 +3594,27 @@ PATTERNS: tuple[IntentPattern, ...] = (
             name=_parse_name(m.group("name")), source=s, confidence=c,
         ),
     ),
+    # --- Map set/remove key helpers ---
+    IntentPattern(
+        "USE_STDLIB",
+        re.compile(r"(?:put|set)\s+key\s+(?P<key>.+?)\s+in\s+(?P<value>.+?)\s+to\s+(?P<item>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I),
+        0.98,
+        lambda m, s, c: UseStdLibAction(
+            module="map", action="set",
+            args={"value": parse_text_value(m.group("value")), "key": parse_text_value(m.group("key")), "item": parse_text_value(m.group("item"))},
+            name=_parse_name(m.group("name")), source=s, confidence=c,
+        ),
+    ),
+    IntentPattern(
+        "USE_STDLIB",
+        re.compile(r"remove\s+key\s+(?P<key>.+?)\s+from\s+(?P<value>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I),
+        0.98,
+        lambda m, s, c: UseStdLibAction(
+            module="map", action="remove",
+            args={"value": parse_text_value(m.group("value")), "key": parse_text_value(m.group("key"))},
+            name=_parse_name(m.group("name")), source=s, confidence=c,
+        ),
+    ),
     # --- Not / isn't condition expressions ---
     IntentPattern(
         "PRINT",
@@ -3338,7 +3647,7 @@ PATTERNS: tuple[IntentPattern, ...] = (
         0.95,
         lambda m, s, c: UseStdLibAction(
             module="list", action="extend",
-            args={"values": parse_text_value(m.group("values")), "values": parse_text_value(m.group("other"))},
+            args={"values": parse_text_value(m.group("values")), "other": parse_text_value(m.group("other"))},
             name=_parse_name(m.group("name")), source=s, confidence=c,
         ),
     ),
@@ -3394,6 +3703,61 @@ PATTERNS: tuple[IntentPattern, ...] = (
         lambda m, s, c: UseStdLibAction(
             module="list", action="shuffle",
             args={"values": parse_text_value(m.group("values"))},
+            name=_parse_name(m.group("name")), source=s, confidence=c,
+        ),
+    ),
+    # === Dynamic Python module bridge ===
+    # Use <module> <action> with <args> as <name>
+    IntentPattern(
+        "USE_STDLIB_DYNAMIC",
+            re.compile(
+                rf"use\s+(?P<module>{_DYNAMIC_MODULE})\s+(?P<action>[^\W\d]\w[\w\s]*?)"
+                r"(?:\s+with\s+(?P<args>.+?))?\s+as\s+(?P<name>[^\W\d]\w*)",
+                re.I,
+            ),
+            0.90,
+        _use_stdlib_action,
+    ),
+    # Ask/Tell <module> to <action> with <args> as <name>
+    IntentPattern(
+        "USE_STDLIB_DYNAMIC",
+        re.compile(
+            rf"(?:ask|tell)\s+(?P<module>{_DYNAMIC_MODULE})\s+to\s+"
+            r"(?P<action>[^\W\d]\w[\w\s]*?)(?:\s+with\s+(?P<args>.+?))?\s+as\s+(?P<name>[^\W\d]\w*)",
+            re.I,
+        ),
+        0.90,
+        _use_stdlib_action,
+    ),
+    # Get/Run <module> <action> with <args> as <name>
+    IntentPattern(
+        "USE_STDLIB_DYNAMIC",
+        re.compile(
+            rf"(?:get|run)\s+(?P<module>{_DYNAMIC_MODULE})\s+"
+            r"(?P<action>[^\W\d]\w[\w\s]*?)(?:\s+with\s+(?P<args>.+?))?\s+as\s+(?P<name>[^\W\d]\w*)",
+            re.I,
+        ),
+        0.89,
+        _use_stdlib_action,
+    ),
+    # --- Shell execution ---
+    IntentPattern(
+        "USE_STDLIB",
+        re.compile(r"use\s+shell\s+(?:to\s+)?(?:run|exec|execute)\s+(?P<command>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I),
+        0.95,
+        lambda m, s, c: UseStdLibAction(
+            module="shell", action="run",
+            args={"command": _strip_optional_quotes(m.group("command"))},
+            name=_parse_name(m.group("name")), source=s, confidence=c,
+        ),
+    ),
+    IntentPattern(
+        "USE_STDLIB",
+        re.compile(r"use\s+shell\s+(?:to\s+)?spawn\s+(?P<command>.+?)\s+as\s+(?P<name>[^\W\d]\w*)", re.I),
+        0.90,
+        lambda m, s, c: UseStdLibAction(
+            module="shell", action="popen",
+            args={"command": _strip_optional_quotes(m.group("command"))},
             name=_parse_name(m.group("name")), source=s, confidence=c,
         ),
     ),
@@ -3487,6 +3851,8 @@ def _to_english(phrase: str) -> str:
     return result
 
 
+from .ai import translate_phrase
+
 def match_intent(phrase: str, patterns: Iterable[IntentPattern] = PATTERNS) -> object:
     phrase = _to_english(phrase)
     normalized = normalize_phrase(phrase)
@@ -3500,7 +3866,13 @@ def match_intent(phrase: str, patterns: Iterable[IntentPattern] = PATTERNS) -> o
             continue
         if result is not None:
             matches.append(result)
+    
     if not matches:
+        # Try AI fallback
+        ai_phrase = translate_phrase(phrase)
+        if ai_phrase:
+            return match_intent(ai_phrase, patterns)
+
         if extraction_errors:
             raise extraction_errors[0]
         hint = _hint(normalized)

@@ -1,0 +1,4 @@
+# Helper module imported by code_anything_native.angis
+
+define triple with value:
+    return value * 3

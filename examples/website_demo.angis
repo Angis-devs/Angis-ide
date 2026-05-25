@@ -1,0 +1,196 @@
+App, My Angis Website.
+Scene, canvas.
+Window size 900 by 650.
+
+Set bg_color to #1a1a2e.
+Set accent to #e94560.
+Set text_color to #ffffff.
+Set section_bg to #16213e.
+Set card_bg to #0f3460.
+
+Create rectangle named background at x 0 y 0.
+Set background width to 900.
+Set background height to 650.
+Set background color to bg_color.
+
+Create text named site_title at x 30 y 30 saying "ANGIS STUDIO".
+Set site_title color to accent.
+Set site_title size to 22.
+
+Create text named nav_home at x 700 y 35 saying "Home".
+Set nav_home color to text_color.
+Set nav_home size to 14.
+
+Create text named nav_projects at x 760 y 35 saying "Projects".
+Set nav_projects color to text_color.
+Set nav_projects size to 14.
+
+Create text named nav_contact at x 840 y 35 saying "Contact".
+Set nav_contact color to text_color.
+Set nav_contact size to 14.
+
+Create rectangle named header_line at x 0 y 65.
+Set header_line width to 900.
+Set header_line height to 2.
+Set header_line color to accent.
+
+Create text named hero_title at x 60 y 120 saying "Building Cool Stuff With Angis".
+Set hero_title color to text_color.
+Set hero_title size to 28.
+
+Create text named hero_sub at x 60 y 165 saying "A natural language programming language that lets you build 3D games, tools, and apps in plain English."
+Set hero_sub color to #aaaacc.
+Set hero_sub size to 13.
+
+Create rectangle named hero_btn at x 60 y 210.
+Set hero_btn width to 140.
+Set hero_btn height to 36.
+Set hero_btn color to accent.
+Set hero_btn border_radius to 6.
+
+Create text named hero_btn_label at x 75 y 220 saying "Get Started".
+Set hero_btn_label color to text_color.
+Set hero_btn_label size to 13.
+
+Create text named hero_btn_arrow at x 167 y 220 saying "→".
+Set hero_btn_arrow color to text_color.
+Set hero_btn_arrow size to 13.
+
+Create rectangle named section1_bg at x 0 y 280.
+Set section1_bg width to 900.
+Set section1_bg height to 170.
+Set section1_bg color to section_bg.
+
+Create text named features_title at x 60 y 300 saying "What You Can Build".
+Set features_title color to text_color.
+Set features_title size to 18.
+
+Set card_count to 3.
+Set card_w to 240.
+Set card_h to 100.
+Set card_y_pos to 335.
+Set card1_x to 60.
+Set card2_x to 320.
+Set card3_x to 580.
+
+Create rectangle named card1 at x 60 y 335.
+Set card1 width to card_w.
+Set card1 height to card_h.
+Set card1 color to card_bg.
+Set card1 border_radius to 8.
+
+Create rectangle named card2 at x 320 y 335.
+Set card2 width to card_w.
+Set card2 height to card_h.
+Set card2 color to card_bg.
+Set card2 border_radius to 8.
+
+Create rectangle named card3 at x 580 y 335.
+Set card3 width to card_w.
+Set card3 height to card_h.
+Set card3 color to card_bg.
+Set card3 border_radius to 8.
+
+Create text named card1_title at x 75 y 350 saying "3D Games".
+Set card1_title color to accent.
+Set card1_title size to 14.
+
+Create text named card1_desc at x 75 y 377 saying "Build Flappy Bird, platformers, and more with 3D scenes, physics, and events."
+Set card1_desc color to #99aacc.
+Set card1_desc size to 11.
+
+Create text named card2_title at x 335 y 350 saying "File & Data Tools".
+Set card2_title color to accent.
+Set card2_title size to 14.
+
+Create text named card2_desc at x 335 y 377 saying "Read/write files, parse CSV, query SQLite, fetch HTTP APIs, and process JSON."
+Set card2_desc color to #99aacc.
+Set card2_desc size to 11.
+
+Create text named card3_title at x 595 y 350 saying "AI & Text Processing".
+Set card3_title color to accent.
+Set card3_title size to 14.
+
+Create text named card3_desc at x 595 y 377 saying "Keyword extraction, sentiment, summarization, and text generation — all offline."
+Set card3_desc color to #99aacc.
+Set card3_desc size to 11.
+
+Create rectangle named section2_bg at x 0 y 450.
+Set section2_bg width to 900.
+Set section2_bg height to 200.
+Set section2_bg color to bg_color.
+
+Create text named stats_title at x 60 y 470 saying "Angis By The Numbers".
+Set stats_title color to text_color.
+Set stats_title size to 18.
+
+Create text named stat1_val at x 60 y 510 saying "19+".
+Set stat1_val color to accent.
+Set stat1_val size to 30.
+
+Create text named stat1_label at x 60 y 545 saying "Capability Categories".
+Set stat1_label color to #99aacc.
+Set stat1_label size to 11.
+
+Create text named stat2_val at x 260 y 510 saying "140+".
+Set stat2_val color to accent.
+Set stat2_val size to 30.
+
+Create text named stat2_label at x 260 y 545 saying "Phrase Patterns".
+Set stat2_label color to #99aacc.
+Set stat2_label size to 11.
+
+Create text named stat3_val at x 460 y 510 saying "4".
+Set stat3_val color to accent.
+Set stat3_val size to 30.
+
+Create text named stat3_label at x 460 y 545 saying "Human Languages".
+Set stat3_label color to #99aacc.
+Set stat3_label size to 11.
+
+Create text named stat4_val at x 660 y 510 saying "0".
+Set stat4_val color to accent.
+Set stat4_val size to 30.
+
+Create text named stat4_label at x 660 y 545 saying "Cloud Dependencies".
+Set stat4_label color to #99aacc.
+Set stat4_label size to 11.
+
+Create rectangle named footer_bg at x 0 y 610.
+Set footer_bg width to 900.
+Set footer_bg height to 40.
+Set footer_bg color to #0d0d1a.
+
+Create text named footer_text at x 320 y 622 saying "Built with Angis — 2026 — Open source on GitHub".
+Set footer_text color to #666688.
+Set footer_text size to 10.
+
+Set click_step to 0.
+
+on click:
+    Set click_step to click_step + 1.
+    If click_step is 1:
+        Set hero_btn_label text to "You clicked!".
+        Set hero_btn color to #2ecc71.
+        Set card1 color to #e94560.
+        Set card1_title color to #ffffff.
+    If click_step is 2:
+        Set hero_btn_label text to "Click again!".
+        Set hero_btn color to #ff6b81.
+        Set card1 color to #0f3460.
+        Set card1_title color to #e94560.
+        Set card2 color to #e94560.
+        Set card2_title color to #ffffff.
+    If click_step is 3:
+        Set hero_btn_label text to "Get Started".
+        Set hero_btn color to #e94560.
+        Set card2 color to #0f3460.
+        Set card2_title color to #e94560.
+        Set card3 color to #e94560.
+        Set card3_title color to #ffffff.
+    If click_step is 4:
+        Set card3 color to #0f3460.
+        Set card3_title color to #e94560.
+        Set hero_btn_label text to "All done! Click to reset".
+        Set hero_btn color to #9b59b6.
+        Set click_step to 0.

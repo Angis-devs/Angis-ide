@@ -1,0 +1,300 @@
+App, Minicraft.
+Scene, true 3D.
+Window size 900 by 650.
+camera at x 0 y 4 z -10.
+mode third person.
+
+Set player_x to 0.
+Set player_y to 0.
+Set player_z to 0.
+Set move_speed to 0.15.
+Set gravity to 0.008.
+Set velocity_y to 0.
+Set on_ground to false.
+Set selected_color to "#8B5E3C".
+Set selected_name to "dirt".
+Set pool_index to 0.
+Set moving_fwd to false.
+Set moving_back to false.
+Set moving_left to false.
+Set moving_right to false.
+
+Create text named hud at x 0 y 280 z 0 saying "MINICRAFT — WASD=move  Space=jump  Click=place  Q=undo  R=reset".
+Set hud color to white.
+Set hud size to 11.
+
+Create text named block_hud at x 0 y 260 z 0 saying "Block: dirt  |  1-4 to change".
+Set block_hud color to #aaffaa.
+Set block_hud size to 10.
+
+Create text named pos_hud at x 0 y 240 z 0 saying "Pos: 0 0 0".
+Set pos_hud color to #888888.
+Set pos_hud size to 9.
+
+Create text named ctrl at x 0 y -280 z 0 saying "1=dirt  2=grass  3=stone  4=water".
+Set ctrl color to #666666.
+Set ctrl size to 9.
+
+Create box named ground at x 0 y 0 z 0.
+Set ground scale_x to 8.
+Set ground scale_y to 0.5.
+Set ground scale_z to 8.
+Set ground color to #8B5E3C.
+Set ground y to -0.5.
+
+Create box named d1 at x 0 y 0 z 0.
+Set d1 scale_x to 1.
+Set d1 scale_y to 1.
+Set d1 scale_z to 1.
+Set d1 color to #4A7C3F.
+Set d1 x to -2.
+Set d1 y to 0.5.
+Set d1 z to -2.
+
+Create box named d2 at x 0 y 0 z 0.
+Set d2 scale_x to 1.
+Set d2 scale_y to 1.
+Set d2 scale_z to 1.
+Set d2 color to #4A7C3F.
+Set d2 x to -1.
+Set d2 y to 0.5.
+Set d2 z to -2.
+
+Create box named d3 at x 0 y 0 z 0.
+Set d3 scale_x to 1.
+Set d3 scale_y to 1.
+Set d3 scale_z to 1.
+Set d3 color to #4A7C3F.
+Set d3 x to -2.
+Set d3 y to 0.5.
+Set d3 z to -1.
+
+Create box named t1 at x 0 y 0 z 0.
+Set t1 scale_x to 1.
+Set t1 scale_y to 1.
+Set t1 scale_z to 1.
+Set t1 color to #6B6B6B.
+Set t1 x to 2.
+Set t1 y to 0.5.
+Set t1 z to 2.
+
+Create box named t2 at x 0 y 0 z 0.
+Set t2 scale_x to 1.
+Set t2 scale_y to 1.
+Set t2 scale_z to 1.
+Set t2 color to #6B6B6B.
+Set t2 x to 2.
+Set t2 y to 1.5.
+Set t2 z to 2.
+
+Create box named t3 at x 0 y 0 z 0.
+Set t3 scale_x to 1.
+Set t3 scale_y to 1.
+Set t3 scale_z to 1.
+Set t3 color to #6B6B6B.
+Set t3 x to 2.
+Set t3 y to 2.5.
+Set t3 z to 2.
+
+Create box named t4 at x 0 y 0 z 0.
+Set t4 scale_x to 1.
+Set t4 scale_y to 1.
+Set t4 scale_z to 1.
+Set t4 color to #6B6B6B.
+Set t4 x to -2.
+Set t4 y to 0.5.
+Set t4 z to 2.
+
+Create box named t5 at x 0 y 0 z 0.
+Set t5 scale_x to 1.
+Set t5 scale_y to 1.
+Set t5 scale_z to 1.
+Set t5 color to #6B6B6B.
+Set t5 x to -2.
+Set t5 y to 1.5.
+Set t5 z to 2.
+
+Create box named w1 at x 0 y 0 z 0.
+Set w1 scale_x to 1.
+Set w1 scale_y to 0.6.
+Set w1 scale_z to 1.
+Set w1 color to #3C3C8B.
+Set w1 x to 2.
+Set w1 y to 0.5.
+Set w1 z to -3.
+
+Create box named p0 at x 0 y 0 z 0.
+Set p0 scale_x to 1.
+Set p0 scale_y to 1.
+Set p0 scale_z to 1.
+Set p0 y to -20.
+Set p0 active to false.
+
+Create box named p1 at x 0 y 0 z 0.
+Set p1 scale_x to 1.
+Set p1 scale_y to 1.
+Set p1 scale_z to 1.
+Set p1 y to -20.
+Set p1 active to false.
+
+Create box named p2 at x 0 y 0 z 0.
+Set p2 scale_x to 1.
+Set p2 scale_y to 1.
+Set p2 scale_z to 1.
+Set p2 y to -20.
+Set p2 active to false.
+
+Create box named p3 at x 0 y 0 z 0.
+Set p3 scale_x to 1.
+Set p3 scale_y to 1.
+Set p3 scale_z to 1.
+Set p3 y to -20.
+Set p3 active to false.
+
+Create box named p4 at x 0 y 0 z 0.
+Set p4 scale_x to 1.
+Set p4 scale_y to 1.
+Set p4 scale_z to 1.
+Set p4 y to -20.
+Set p4 active to false.
+
+Create box named p5 at x 0 y 0 z 0.
+Set p5 scale_x to 1.
+Set p5 scale_y to 1.
+Set p5 scale_z to 1.
+Set p5 y to -20.
+Set p5 active to false.
+
+Create box named p6 at x 0 y 0 z 0.
+Set p6 scale_x to 1.
+Set p6 scale_y to 1.
+Set p6 scale_z to 1.
+Set p6 y to -20.
+Set p6 active to false.
+
+Create box named p7 at x 0 y 0 z 0.
+Set p7 scale_x to 1.
+Set p7 scale_y to 1.
+Set p7 scale_z to 1.
+Set p7 y to -20.
+Set p7 active to false.
+
+Create box named p8 at x 0 y 0 z 0.
+Set p8 scale_x to 1.
+Set p8 scale_y to 1.
+Set p8 scale_z to 1.
+Set p8 y to -20.
+Set p8 active to false.
+
+Create box named p9 at x 0 y 0 z 0.
+Set p9 scale_x to 1.
+Set p9 scale_y to 1.
+Set p9 scale_z to 1.
+Set p9 y to -20.
+Set p9 active to false.
+
+Set place_pool to [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9].
+Set placed_blocks to [].
+
+When key w pressed:
+    Set moving_fwd to true.
+
+When key w released:
+    Set moving_fwd to false.
+
+When key s pressed:
+    Set moving_back to true.
+
+When key s released:
+    Set moving_back to false.
+
+When key a pressed:
+    Set moving_left to true.
+
+When key a released:
+    Set moving_left to false.
+
+When key d pressed:
+    Set moving_right to true.
+
+When key d released:
+    Set moving_right to false.
+
+When key space pressed:
+    If on_ground is true:
+        Set velocity_y to -0.25.
+        Set on_ground to false.
+
+on click:
+    If pool_index is less than 10:
+        Get item at index pool_index of place_pool as pb.
+        Round player_x as px.
+        Set py to player_y - 1.
+        Round py as p_y.
+        Round player_z as pz.
+        Set pb x to px.
+        Set pb y to p_y.
+        Set pb z to pz.
+        Set pb color to selected_color.
+        Set pb active to true.
+        Set pool_index to pool_index + 1.
+
+When key q pressed:
+    Count length of placed_blocks as cnt.
+    If cnt is greater than 0:
+        Get last item of placed_blocks as lb.
+        Set lb active to false.
+        Remove lb from placed_blocks.
+        Set pool_index to pool_index - 1.
+
+When key r pressed:
+    For each block in placed_blocks:
+        Set block active to false.
+    Set placed_blocks to [].
+    Set pool_index to 0.
+
+When key 1 pressed:
+    Set selected_color to "#8B5E3C".
+    Set selected_name to "dirt".
+    Set block_hud text to "Block: dirt  |  1-4 to change".
+
+When key 2 pressed:
+    Set selected_color to "#4A7C3F".
+    Set selected_name to "grass".
+    Set block_hud text to "Block: grass  |  1-4 to change".
+
+When key 3 pressed:
+    Set selected_color to "#6B6B6B".
+    Set selected_name to "stone".
+    Set block_hud text to "Block: stone  |  1-4 to change".
+
+When key 4 pressed:
+    Set selected_color to "#3C3C8B".
+    Set selected_name to "water".
+    Set block_hud text to "Block: water  |  1-4 to change".
+
+Every 30 ms:
+    Set dx to 0.
+    Set dz to 0.
+    If moving_fwd is true:
+        Set dz to dz - move_speed.
+    If moving_back is true:
+        Set dz to dz + move_speed.
+    If moving_left is true:
+        Set dx to dx - move_speed.
+    If moving_right is true:
+        Set dx to dx + move_speed.
+    Set player_x to player_x + dx.
+    Set player_z to player_z + dz.
+    Set velocity_y to velocity_y + gravity.
+    Set player_y to player_y + velocity_y.
+    If player_y is greater than 0:
+        Set player_y to 0.
+        Set velocity_y to 0.
+        Set on_ground to true.
+    Set camera x to player_x.
+    Set camera y to player_y + 2.
+    Set camera z to player_z - 8.
+    Turn player_x into text as px.
+    Turn player_z into text as pz.
+    Set pos_hud text to "Pos: " + px + " 0 " + pz.

@@ -278,8 +278,8 @@ show hero
     out = interp.run(ast)
     hero = interp.variables.get("hero")
     assert hero is not None
-    assert hero.get("health") == 20
-    assert hero.get("name") == "Ada"
+    assert hero.health == 20
+    assert hero.name == "Ada"
 
 
 def test_decorator_parses():
@@ -359,3 +359,62 @@ def test_python_inline_in_output():
     interp = Interpreter()
     out = interp.run(ast)
     assert "20" in out
+
+
+def test_function_call_expression_uses_angis_functions_inside_values():
+    code = """
+define add with left and right:
+    return left + right
+
+set result to result of add with 2, 3
+show result
+"""
+    ast = parse(code)
+    interp = Interpreter()
+    out = interp.run(ast)
+    assert interp.variables["result"] == 5
+    assert out == ["5"]
+
+
+def test_function_call_expression_composes_inside_angis_math():
+    code = """
+define double with value:
+    return value * 2
+
+set result to result of double with 4 plus result of double with 3
+show result
+"""
+    ast = parse(code)
+    interp = Interpreter()
+    out = interp.run(ast)
+    assert interp.variables["result"] == 14
+    assert out == ["14"]
+
+
+def test_python_exec_function_can_be_called_with_angis_flow():
+    code = """
+run python: def triple(value): return value * 3
+call triple with 7 as result
+show result
+"""
+    ast = parse(code)
+    interp = Interpreter()
+    out = interp.run(ast)
+    assert interp.variables["result"] == 21
+    assert out == ["21"]
+
+
+def test_python_exec_block_keeps_multiline_code_available_to_angis():
+    code = """
+run python:
+    def build_label(name, count):
+        return f"{name}:{count}"
+
+call build_label with Ada, 3 as label
+show label
+"""
+    ast = parse(code)
+    interp = Interpreter()
+    out = interp.run(ast)
+    assert interp.variables["label"] == "Ada:3"
+    assert out == ["Ada:3"]

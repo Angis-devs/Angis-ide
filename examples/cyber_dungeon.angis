@@ -1,0 +1,85 @@
+# Cyber Dungeon Crawler
+# A demonstration of complex logic, visuals, and natural language in Angis.
+
+App "Cyber Dungeon"
+Scene "canvas"
+Window size 800 by 600.
+Dark background.
+
+# --- GAME LOGIC (Blueprints) ---
+
+Blueprint Entity with name: "Unknown", hp: 10, max_hp: 10, attack: 2.
+
+Blueprint Hero inherits Entity with gold: 0, level: 1.
+
+# Initialize Hero
+Create Hero named hero with name: "Lovelace", hp: 20, max_hp: 20, attack: 5.
+
+# --- VISUALS ---
+
+# Player Sprite
+Create circle named player_sprite at x 400 y 300 z 10
+Set player_sprite.color to "#38bdf8"
+Set player_sprite.size to 30
+Set player_sprite.textcolor to "#ffffff"
+
+# An Enemy
+Create circle named virus at x 200 y 150 z 5
+Set virus.color to "#f43f5e"
+Set virus.size to 25
+Set virus.text to "VIRUS"
+
+# A Treasure
+Create rectangle named data_cube at x 600 y 450 z 5
+Set data_cube.color to "#facc15"
+Set data_cube.width to 20
+Set data_cube.height to 20
+Set data_cube.text to "DATA"
+
+# --- UI & STATS ---
+
+Show "Dungeon Initialized. Move with WASD."
+Show "Hero: " + hero.name + " | HP: " + hero.hp + " | Gold: " + hero.gold
+
+# --- CONTROLS ---
+
+When key w pressed:
+    Move player_sprite up by 15
+
+When key s pressed:
+    Move player_sprite down by 15
+
+When key a pressed:
+    Move player_sprite left by 15
+
+When key d pressed:
+    Move player_sprite right by 15
+
+# --- INTERACTIONS ---
+
+# Combat Logic
+When player_sprite touches virus:
+    Say "SYSTEM ALERT: Security Breach!"
+    Set hero.hp to hero.hp - 2
+    Set virus.color to "#ffffff"
+    Animate virus right by 100 every 50 milliseconds
+    Show "HP Left: " + hero.hp
+    If hero.hp is at most 0:
+        Say "CRITICAL FAILURE: Game Over"
+        Set player_sprite.color to "#475569"
+
+# Loot Logic
+When player_sprite touches data_cube:
+    Say "DATA ACQUIRED!"
+    Set hero.gold to hero.gold + 50
+    Move data_cube up by 1000  # Hide it
+    Show "Total Gold: " + hero.gold
+
+# --- MULTILINGUAL FALLBACKS ---
+
+# Italian
+mostra "Scansione completa."
+
+# Portuguese
+defina status_sistema como "Operacional"
+mostre status_sistema

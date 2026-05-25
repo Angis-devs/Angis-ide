@@ -1,0 +1,4 @@
+# Text package module
+
+Define echo with value:
+    Return, value.

@@ -1,0 +1,613 @@
+# ─── Angis Flow — Everything Angis Can & Cannot Code ───
+# Run: python -m angis run examples/angis_flow.angis
+# Tours 42 capability categories and lists remaining limitations.
+
+Say, ═══ Angis: A General-Purpose Language Tour ═══
+
+# ============ 1. VARIABLES & DATA TYPES ============
+Say, === 1. Variables & Data Types ===
+Set my_int to 42.
+Set my_float to 3.14.
+Set my_string to "Hello Angis".
+Set my_bool to true.
+Set my_list to [1, 2, 3].
+Set my_dict to {name: "Ada", score: 100}.
+Say my_int.
+Say my_string.
+Show my_bool.
+
+# ============ 2. MATH & OPERATORS ============
+Say, === 2. Math & Operators ===
+Set sum to 10 + 5.
+Set diff to 10 - 5.
+Set product to 10 * 5.
+Set quotient to 10 / 3.
+Set remainder to 10 % 3.
+Set power to 2 ** 8.
+Set word_sum to 10 plus 5.
+Set word_diff to 10 minus 5.
+Set word_product to 10 times 5.
+Say sum.
+Say power.
+
+# ============ 3. COMPARISONS & BOOLEANS ============
+Say, === 3. Comparisons & Booleans ===
+If 5 is greater than 3:
+    Say 5 is greater than 3.
+If 4 equals 4:
+    Say 4 equals 4.
+If 2 is at most 5:
+    Say 2 is at most 5.
+If 5 is between 1 and 10:
+    Say 5 is between 1 and 10.
+If 5 is greater than 2 and 5 is less than 10:
+    Say Combined conditions with and.
+If 5 is greater than 2 or 5 is less than 0:
+    Say Combined conditions with or.
+If not 5 is less than 0:
+    Say Not operator works.
+Set name to "Angis".
+If name starts with "Ang":
+    Say Starts with works.
+If name contains "gis":
+    Say Contains works.
+Unless 5 is less than 0:
+    Say Unless works.
+
+# ============ 4. CONTROL FLOW ============
+Say, === 4. Control Flow ===
+# If/Else
+Set score to 85.
+If score is at least 90:
+    Say Grade A.
+Else:
+    If score is at least 80:
+        Say Grade B.
+    Else:
+        Say Other grade.
+
+# While loop
+Set count to 0.
+While count is less than 3:
+    Say count.
+    Set count to count + 1.
+
+# Repeat loop
+Repeat 3 times:
+    Say Repeating.
+
+# For each
+Set items to [a, b, c].
+For each, item in items:
+    Show item.
+
+# For each with range
+For each x in range from 1 to 5:
+    Show x.
+
+# Switch/Match
+Set color to 2.
+Switch color:
+    Case 1:
+        Say Red.
+    Case 2:
+        Say Blue.
+    Default:
+        Say Unknown.
+
+# ============ 5. FUNCTIONS ============
+Say, === 5. Functions ===
+Define greet with name:
+    Show "Hello".
+    Show name.
+    Return "done".
+
+Call greet with World as greeting.
+Show greeting.
+
+Define addPair with left and right:
+    Set total to left + right.
+    Return total.
+
+Call addPair with 7, 8 as sum_result.
+Show sum_result.
+
+# Recursion via loop
+Define factorial with n:
+    Set result to 1.
+    Set i to 1.
+    While i is at most n:
+        Set result to result * i.
+        Set i to i + 1.
+    Return result.
+
+Call factorial with 6 as fact_6.
+Show fact_6.
+
+# ============ 6. LISTS ============
+Say, === 6. Lists ===
+Create list named fruits with apple, banana, cherry.
+Add date to list fruits.
+Put elderberry in fruits.
+Remove banana from fruits.
+
+Sort fruits as sorted_fruits.
+Reverse sorted_fruits as reversed_fruits.
+Shuffle fruits as shuffled_fruits.
+
+Get first item of fruits as first_fruit.
+Get last item of fruits as last_fruit.
+Pick random item from fruits as random_fruit.
+Get length of fruits as fruit_count.
+
+Show sorted_fruits.
+Show first_fruit.
+Show fruit_count.
+
+# List extend
+Create list named more with grape, kiwi.
+Extend fruits with more as extended.
+Show extended.
+
+# List unique
+Create list named dupes with 1, 2, 2, 3, 3.
+unique dupes as uniq.
+Show uniq.
+
+# List sum and average
+Get sum of [10, 20, 30] as total_sum.
+Get average of [10, 20, 30] as avg_val.
+Show total_sum.
+Show avg_val.
+
+# List insert
+Insert 0 at index 0 in fruits as with_pineapple.
+Show with_pineapple.
+
+# Comprehensions
+Set nums to [1, 2, 3, 4, 5].
+Set doubled to for each x in nums collect x * 2.
+Show doubled.
+
+# ============ 7. MAPS / DICTIONARIES ============
+Say, === 7. Maps & Dictionaries ===
+Create dictionary named user with name: Ada, role: admin, score: 42.
+Set user_email to "ada@example.com".
+Get score from user as user_score.
+Get keys from user as user_keys.
+Get values from user as user_values.
+Remove key role from user as cleaned_user.
+
+# Map merge
+Create dictionary named extras with level: 5, title: wizard.
+Merge user with extras as merged_user.
+Show merged_user.
+
+Show user_score.
+Show user_keys.
+
+# Check if key exists via stdlib
+Say Map has key check available.
+
+# ============ 8. BLUEPRINTS (CLASSES) ============
+Say, === 8. Blueprints (Classes) ===
+Blueprint Animal with name: "unknown", sound: "silent".
+Define method speak for Animal:
+    Show self.name.
+    Return self.sound.
+
+Create Animal named dog with name: "Fido", sound: "woof".
+Call dog.speak as dog_sound.
+Show dog_sound.
+
+# Objects are real Python classes with isinstance, type, __dict__
+Say Blueprint instances are native Python class objects.
+Say isinstance check and type() work natively.
+
+# Clone an object
+Clone object dog as twin.
+Show twin.
+
+# List object fields
+List object fields dog as fields.
+Show fields.
+
+# Operator overloading
+Blueprint Vec2 with x: 0, y: 0.
+Define + for Vec2 with left, right:
+    Set nx to left.x + right.x.
+    Set ny to left.y + right.y.
+    Create Vec2 named result with x: nx, y: ny.
+    Return result.
+
+Create Vec2 named a with x: 3, y: 4.
+Create Vec2 named b with x: 1, y: 2.
+Set c to a + b.
+Show c.x.
+Show c.y.
+
+# Constructor
+On create for Vec2 with x and y:
+    Say Vec2 created.
+
+# ============ 9. FILE I/O ============
+Say, === 9. File I/O ===
+Write Hello Angis to file /tmp/angis_flow_demo.txt as write_result.
+Show write_result.
+Append text ! to file /tmp/angis_flow_demo.txt as append_result.
+Read file /tmp/angis_flow_demo.txt as content.
+Show content.
+
+Get file name of /tmp/angis_flow_demo.txt as file_name.
+Get file extension of /tmp/angis_flow_demo.txt as file_ext.
+Get stem from /tmp/angis_flow_demo.txt as file_stem.
+Check if file exists at /tmp/angis_flow_demo.txt as file_exists.
+Show file_name.
+Show file_ext.
+Show file_exists.
+
+# File info
+Get info for file /tmp/angis_flow_demo.txt as info.
+Show info.
+
+# File glob and directory listing available
+Say File glob, list dir, copy, move, delete available.
+
+# ============ 10. TEXT OPERATIONS ============
+Say, === 10. Text Operations ===
+Set sample to "  Hello Angis World!  ".
+Get uppercase of sample as upper.
+Get lowercase of sample as lower.
+Get trimmed text of sample as trimmed.
+Get words of sample as word_list.
+Split trimmed by space as split_words.
+Join split_words with - as slug.
+Replace World in trimmed with Flow as replaced.
+Show trimmed.
+Show slug.
+Show replaced.
+
+# Text checks
+Check if trimmed starts with Hello as starts_ok.
+Check if trimmed ends with World as ends_ok.
+Check if trimmed contains Angis as contains_ok.
+Show starts_ok.
+Show ends_ok.
+Show contains_ok.
+
+# Text transform
+Slugify "Hello Angis World" as slugified.
+Show slugified.
+
+# Reverse text
+Reverse text Angis as reversed_text.
+Show reversed_text.
+
+# ============ 11. MATH FUNCTIONS ============
+Say, === 11. Math Functions ===
+Round 3.7 as rounded.
+Floor 3.7 as floored.
+Ceil 3.2 as ceiled.
+Absolute -5 as absoluted.
+Calculate square root of 81 as sqrt_val.
+Raise 2 to power 10 as pow_val.
+Clamp 14 between 1 and 10 as clamped.
+Pick random number between 1 and 100 as random_num.
+Show rounded.
+Show sqrt_val.
+Show clamped.
+Show random_num.
+
+# More math (binary comparisons)
+Find the maximum of 10 and 30 as max_val.
+Find the minimum of 10 and 30 as min_val.
+Show max_val.
+Show min_val.
+
+# ============ 12. JSON ============
+Say, === 12. JSON ===
+Create dictionary named person with name: Ada, age: 30.
+Turn person into json as json_text.
+Show json_text.
+Say JSON parse also available.
+
+# ============ 13. SQLite ============
+Say, === 13. SQLite ===
+Create database file /tmp/angis_flow.db named test_db.
+Run query create table if not exists notes (text text) on test_db.
+Run query insert into notes values ("Angis stores data") on test_db.
+Run query select * from notes on test_db as rows.
+Show rows.
+
+# ============ 14. REGEX ============
+Say, === 14. Regex ===
+Find pattern \d+ in abc123xyz as found_digits.
+Show found_digits.
+Replace pattern \d+ in abc123xyz with 456 as replaced_text.
+Show replaced_text.
+
+# ============ 15. HASHING & ENCODING ============
+Say, === 15. Hashing & Encoding ===
+Hash text hello with sha256 as hashed.
+Show hashed.
+Encode text hello as base64 as encoded_text.
+Show encoded_text.
+Base64 decode encoded_text as decoded_text.
+Show decoded_text.
+
+# ============ 16. VALIDATION ============
+Say, === 16. Validation ===
+Set email_str to "user@example.com".
+Check if email_str is an email as valid_email.
+Show valid_email.
+Set url_str to "https://example.com:443/path".
+Parse url url_str as url_parts.
+Show url_parts.
+
+# ============ 17. SHELL EXECUTION ============
+Say, === 17. Shell Execution ===
+Use shell to run "echo hello from shell" as shell_result.
+Show shell_result.
+Say Shell provides stdout, stderr, returncode.
+Say Use shell spawn for background processes.
+
+# ============ 18. SYSTEM INFO ============
+Say, === 18. System Info ===
+Get system platform as platform.
+Show platform.
+
+# ============ 18. TIME & DATE ============
+Say, === 18. Time & Date ===
+Get current time as now.
+Show now.
+Get timestamp as epoch.
+Show epoch.
+Get todays date as today.
+Show today.
+
+# ============ 19. ERROR HANDLING ============
+Say, === 19. Error Handling ===
+Try:
+    Raise error Something went wrong.
+Except as err:
+    Say Caught error.
+    Show err.
+
+Try:
+    Say No error here.
+Except as e:
+    Say Should not print.
+
+Assert 2 + 2 is 4 else Math is broken.
+Say Assertion passed.
+
+# ============ 20. CUSTOM PHRASES (DSL) ============
+Say, === 20. Custom Phrases (DSL) ===
+Define phrase give {amount} points to {target}:
+    Set target.score to target.score + amount.
+
+Create dictionary named player with score: 0.
+Give 50 points to player.
+Give 25 points to player.
+Show player.score.
+
+Define phrase start game means Say Game started.
+Start game.
+
+Define phrase award {target:name} with {amount:number} points:
+    Set target.score to target.score + amount.
+
+Create dictionary named hero with score: 0.
+Award hero with 100 points.
+Show hero.score.
+
+# ============ 21. PYTHON INTEROP ============
+Say, === 21. Python Interop ===
+import python os as os
+import python math as math
+import python json as json
+
+Get os getcwd as cwd.
+Show cwd.
+Run math degrees with value: 3.14159 as deg.
+Show deg.
+Run json dumps with obj: {lang: Angis, can_code: yes}, indent: 2 as pretty.
+Show pretty.
+
+# Inline Python
+Run python: py_answer = 42.
+Show py_answer.
+
+# Python eval
+Eval python math.sqrt(144) as sqrt_py.
+Show sqrt_py.
+
+# ============ 22. MODULES & INCLUDES ============
+Say, === 22. Modules & Includes ===
+Say Include other .angis files with include filename.angis.
+Say Use modules with use module path as name.
+
+# ============ 23. DEBUGGING ============
+Say, === 23. Debugging ===
+Say Debug all prints runtime state.
+Say Breakpoint pauses execution.
+
+# ============ 24. UUID & IDENTIFIERS ============
+Say, === 24. UUID & Identifiers ===
+Make uuid as unique_id.
+Show unique_id.
+
+# ============ 25. CONCURRENCY ============
+Say, === 25. Concurrency ===
+Define slow_calc with n:
+    Return n * 2.
+Run slow_calc in background with 21 as job.
+Wait for job as doubled.
+Show doubled.
+
+# ============ 26. COMPREHENSIONS ============
+Say, === 26. Comprehensions ===
+Set nums to [1, 2, 3, 4, 5].
+Set dbl to for each x in nums collect x * 2.
+Show dbl.
+
+# Lambda
+Set doubler to lambda x => x * 2.
+Show doubler.
+
+# ============ 27. ENVIRONMENT & ARGS ============
+Say, === 27. Environment ===
+env USER as user_name.
+Show user_name.
+Get variable PATH as path_var.
+Show path_var.
+
+# ============ 29. 2D CANVAS APPS ============
+Say, === 29. 2D Canvas Apps ===
+Say App / Scene canvas / Create text, button, input, slider, checkbox.
+Say When clicked / When key pressed / Every ms timer / on click.
+Say 2D shapes: circle, rectangle. Collision detection.
+
+# ============ 31. EXPORT & BUILD ============
+Say, === 31. Export & Build ===
+Say Export app to HTML.
+Say Build standalone binary: python -m angis build file.angis -o out/.
+Say Produces 11MB native Mach-O / ELF / PE executable.
+Say No Python installation needed on target machine.
+
+# ============ 32. RANDOM ============
+Say, === 32. Random ===
+Flip coin as flip.
+Show flip.
+Pick random number between 1 and 6 as dice.
+Show dice.
+Pick random item from [a, b, c] as pick.
+Show pick.
+
+# ============ 33. STATISTICS ============
+Say, === 33. Statistics ===
+Get median of [1, 2, 3, 4, 100] as med.
+Show med.
+Get mode of [1, 1, 2, 3] as mode_val.
+Show mode_val.
+Get standard deviation of [2, 4, 4, 4, 5, 5, 7, 9] as stdev_val.
+Show stdev_val.
+
+# ============ 34. SOCKET / NETWORKING ============
+Say, === 34. Networking ===
+Say HTTP fetch with fetch url.
+Say Socket support for TCP/UDP/WebSocket.
+
+# ============ 35. BITWISE OPERATIONS ============
+Say, === 35. Bitwise Operations ===
+Say Bitwise and, or, xor, not, shift left, shift right.
+
+# ============ 36. OBJECT OPERATIONS ============
+Say, === 36. Object Operations ===
+Say Operator overloading: define + for Blueprint with param.
+Say Clone objects, list fields.
+
+# ============ 37. FILE DIRECTORY LISTING ============
+Say, === 37. Directory Listing ===
+Say List directory available via stdlib.
+
+# ============ 38. MULTI-LANGUAGE SUPPORT ============
+Say, === 38. Multi-Language Support ===
+Say Built-in languages: en, es, fr, de, it, pt.
+Say Use: set_language "es" to switch parser keywords.
+
+# ============ 39. PATH OPERATIONS ============
+Say, === 39. Path Operations ===
+Get file name from /tmp/folder/data.csv as p_name.
+Get file extension from /tmp/folder/data.csv as p_ext.
+Get folder from /tmp/folder/data.csv as p_folder.
+Get stem from /tmp/folder/data.csv as p_stem.
+Join path /tmp/folder with data.csv as p_joined.
+Resolve path .. as p_resolved.
+Show p_name.
+Show p_ext.
+Show p_joined.
+Show p_resolved.
+
+# ============ 40. SLEEP / DELAY ============
+Say, === 40. Sleep ===
+Say Sleep N ms pauses execution.
+
+# ============ 41. BITWISE OPERATORS ============
+Say, === 41. Bitwise Operators ===
+Set bw_a to 12.
+Set bw_b to 10.
+Set bw_and to bw_a & bw_b.
+Set bw_or to bw_a | bw_b.
+Set bw_xor to bw_a ^ bw_b.
+Set bw_not to ~bw_a.
+Set bw_shl to bw_a << 2.
+Set bw_shr to bw_a >> 1.
+Say Bitwise on 12 & 10: and, or, xor, not, shift left, shift right.
+Show bw_and.
+Show bw_or.
+Show bw_xor.
+Show bw_not.
+Show bw_shl.
+Show bw_shr.
+
+# ============ 42. RAW BYTE BUFFERS ============
+Say, === 42. Raw Byte Buffers ===
+Use buffer create with size: 16 as bb.
+Use buffer write_int32 with buf: bb, offset: 0, value: 42 as _.
+Use buffer write_int32 with buf: bb, offset: 4, value: 100 as _.
+Use buffer write with buf: bb, offset: 8, data: "angis" as _.
+Use buffer read_int32 with buf: bb, offset: 0 as bb_v1.
+Use buffer read_int32 with buf: bb, offset: 4 as bb_v2.
+Use buffer read with buf: bb, offset: 8, length: 5 as bb_str.
+Use buffer hex with buf: bb as bb_hex.
+Show bb_v1.
+Show bb_v2.
+Show bb_str.
+Show bb_hex.
+
+# ============ 43. STRUCT PACK / UNPACK ============
+Say, === 43. Struct Pack / Unpack ===
+Use struct pack with format: "<3i", values: [10, 20, 30] as bb_packed.
+Use struct sizeof with format: "<3i" as bb_sz.
+Use buffer hex with buf: bb_packed as bb_p_hex.
+Show bb_sz.
+Show bb_p_hex.
+Use struct unpack with format: "<3i", buf: bb_packed as bb_vals.
+Show bb_vals.
+Use buffer create with size: 4 as bb_target.
+Use struct pack_into with format: "<i", buf: bb_target, offset: 0, values: [255] as _.
+Use struct unpack_from with format: "<I", buf: bb_target, offset: 0 as bb_unpacked.
+Show bb_unpacked.
+
+# ============ 44. C FFI (Foreign Function Interface) ============
+Say, === 44. C FFI (Native Calls) ===
+Use ffi load with path: "libc.dylib" as bb_libc.
+Use ffi int32 as bb_int32.
+Use ffi sizeof with value: bb_int32 as bb_int_sz.
+Say Size of int32.
+Show bb_int_sz.
+Use ffi call with lib: bb_libc, name: "printf", args: ["C FFI works!\n"] as bb_ret.
+Say printf returned.
+Show bb_ret.
+
+# ============ 45. MEMORY-MAPPED FILES ============
+Say, === 45. Memory-Mapped Files ===
+Use file write with path: "/tmp/angis_mmap_demo.bin", text: "MMAP demo OK" as _.
+Use mmap map with path: "/tmp/angis_mmap_demo.bin", length: 12 as bb_map.
+Use mmap read with map: bb_map, offset: 0, length: 12 as bb_map_data.
+Show bb_map_data.
+Use mmap close with map: bb_map as _.
+
+# ============ ═══ LIMITATIONS ═══ ============
+Say, ═══ What Angis Cannot Code ═══
+Say, 1. No cloud AI API dependencies. All parsing is offline.
+Say, 2. Not production-scale: prototype maturity.
+Say, 3. No real-time OS or embedded targets.
+Say, Everything else is fair game — see above for 46 capability categories.
+
+# ─── DONE ───
+Say Done.
+Say ═══ Angis Flow Complete ═══
+Say You can code almost anything in Angis.
+Say For anything else, Python interop covers you.

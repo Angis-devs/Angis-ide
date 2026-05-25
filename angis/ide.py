@@ -30,7 +30,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 LOGO_PATH = PROJECT_ROOT / "logo" / "logo.png"
 STARTUP_IMAGE = PROJECT_ROOT / "angis loading" / "loading screen.png"
 STARTUP_AUDIO = PROJECT_ROOT / "angis loading" / "loading-adieo.mp3"
-STARTUP_AUDIO = PROJECT_ROOT / "angis loading" / "loading-adieo.mp3"
 STARTUP_MAX_SIZE = 720
 
 
@@ -1179,69 +1178,78 @@ class AngisIDE(tk.Tk):
         widget.configure(state=tk.DISABLED)
 
 
-def _show_startup_splash() -> None:
+def _show_startup_splash(master: tk.Tk) -> None:
     if not STARTUP_IMAGE.is_file() and not STARTUP_AUDIO.is_file():
         return
 
-    splash = tk.Tk()
+    splash = tk.Toplevel(master)
     splash.title("Angis")
     _set_window_icon(splash, LOGO_PATH)
-    splash_width, splash_height = _startup_splash_size(STARTUP_IMAGE)
-    splash.geometry(f"{splash_width}x{splash_height}")
+    splash.update_idletasks()
+    screen_w = splash.winfo_screenwidth()
+    screen_h = splash.winfo_screenheight()
+    splash.geometry(f"{screen_w}x{screen_h}+0+0")
     splash.configure(bg="#0f172a")
     splash.resizable(False, False)
+    splash.transient(master)
+    splash.grab_set()
+    splash.attributes("-fullscreen", True)
 
-    canvas = tk.Canvas(splash, width=splash_width, height=splash_height, highlightthickness=0)
+    canvas = tk.Canvas(splash, width=screen_w, height=screen_h, highlightthickness=0, bg="#0f172a")
     canvas.place(x=0, y=0)
-    image = _load_standalone_image(splash, STARTUP_IMAGE, max_width=splash_width, max_height=splash_height) if STARTUP_IMAGE.is_file() else None
-    if image is not None:
-        refs = [image]
-        canvas.create_image(0, 0, anchor=tk.NW, image=image)
-    else:
-        canvas.create_text(splash_width // 2, splash_height // 2, text="Angis", font=("TkDefaultFont", 32, "bold"), fill="#f8fafc")
-
-    BAR_W = int(splash_width * 0.50)
-    BAR_H = 36
-    tr = int(splash_height * 0.86 - 12)
-    canvas.create_rectangle((splash_width - BAR_W) // 2, tr, (splash_width + BAR_W) // 2, tr + BAR_H, fill="#1e293b", outline="", tags="bar_track")
-    bar_fill = canvas.create_rectangle((splash_width - BAR_W) // 2, tr, (splash_width - BAR_W) // 2, tr + BAR_H, fill="#a855f7", outline="", tags="bar_fill")
 
     player = _play_audio_path(str(STARTUP_AUDIO)) if STARTUP_AUDIO.is_file() else None
     duration_ms = _audio_duration_ms(str(STARTUP_AUDIO)) if STARTUP_AUDIO.is_file() else 2500
     duration_ms = max(1000, min(duration_ms, 30000))
-    state = {"pct": 0, "finished": False}
-    BAR_X = (splash_width - BAR_W) // 2
 
-    def animate() -> None:
-        if state["finished"]:
-            return
-        if not splash.winfo_exists():
-            return
-        state["pct"] = min(state["pct"] + 2, 100)
-        fill_w = int(BAR_W * state["pct"] / 100)
-        canvas.coords(bar_fill, BAR_X, tr, BAR_X + fill_w, tr + BAR_H)
-        if state["pct"] < 100:
-            splash.after(max(1, duration_ms // 50), animate)
-        else:
-            finish()
+    image = _load_standalone_image(splash, STARTUP_IMAGE, max_width=screen_w, max_height=screen_h) if STARTUP_IMAGE.is_file() else None
+    if image is not None:
+        canvas.image = image
+        iw, ih = image.width(), image.height()
+        ix = (screen_w - iw) // 2
+        iy = (screen_h - ih) // 2
+        canvas.create_image(ix, iy, anchor=tk.NW, image=image)
 
-    def finish(stop_audio: bool = False) -> None:
-        if state["finished"]:
+        bpx = ix + int(iw * 0.15)
+        bpw = int(iw * 0.70)
+        bar_bottom = iy + int(ih * 0.86) + max(6, int(ih * 0.045))
+        bph = max(10, int(ih * 0.065))
+        bpy = bar_bottom - bph
+        canvas.create_rectangle(bpx, bpy, bpx + bpw, bpy + bph, fill="#1e293b", outline="", tags="bar_track")
+        bf = canvas.create_rectangle(bpx, bpy, bpx, bpy + bph, fill="#a855f7", outline="", tags="bar_fill")
+
+    if image is None:
+        canvas.create_text(screen_w // 2, screen_h // 2, text="Angis", font=("TkDefaultFont", 32, "bold"), fill="#f8fafc")
+        splash.after(duration_ms, lambda: splash.destroy() if splash.winfo_exists() else None)
+        splash.wait_window()
+        return
+
+    state = {"pct": 0, "done": False}
+
+    def close() -> None:
+        if state["done"]:
             return
-        state["finished"] = True
-        state["pct"] = 100
-        canvas.coords(bar_fill, BAR_X, tr, BAR_X + BAR_W, tr + BAR_H)
-        if stop_audio and player is not None and player.poll() is None:
+        state["done"] = True
+        canvas.coords(bf, bpx, bpy, bpx + bpw, bpy + bph)
+        if player is not None and player.poll() is None:
             player.terminate()
         if splash.winfo_exists():
             splash.destroy()
 
-    animate()
-    if player is None:
-        splash.after(duration_ms, finish)
-    else:
-        splash.after(max(duration_ms + 5000, 60000), lambda: finish(stop_audio=True))
-    splash.mainloop()
+    def tick() -> None:
+        if state["done"] or not splash.winfo_exists():
+            return
+        state["pct"] = min(state["pct"] + 2, 100)
+        fw = int(bpw * state["pct"] / 100)
+        canvas.coords(bf, bpx, bpy, bpx + fw, bpy + bph)
+        if state["pct"] < 100:
+            splash.after(max(1, duration_ms // 50), tick)
+        else:
+            close()
+
+    tick()
+    splash.after(duration_ms, close)
+    master.wait_window(splash)
 
 
 _ICON_CACHE: list[tk.PhotoImage] = []
@@ -1296,10 +1304,11 @@ def _load_standalone_image(root: tk.Misc, path: Path, max_width: int, max_height
     if Image is not None and ImageTk is not None:
         try:
             pil_image = Image.open(path)
-            if cover:
-                pil_image = _resize_cover(pil_image, max_width, max_height)
-            else:
-                pil_image = pil_image.resize((max_width, max_height), Image.LANCZOS)
+            iw, ih = pil_image.size
+            scale = min(max_width / iw, max_height / ih)
+            dw = max(1, int(iw * scale))
+            dh = max(1, int(ih * scale))
+            pil_image = pil_image.resize((dw, dh), Image.LANCZOS)
             return ImageTk.PhotoImage(pil_image, master=root)
         except Exception:
             return None
@@ -1315,10 +1324,7 @@ def _load_standalone_image(root: tk.Misc, path: Path, max_width: int, max_height
         return None
     try:
         pil_image = Image.open(path)
-        if cover:
-            pil_image = _resize_cover(pil_image, max_width, max_height)
-        else:
-            pil_image.thumbnail((max_width, max_height))
+        pil_image.thumbnail((max_width, max_height))
         return ImageTk.PhotoImage(pil_image, master=root)
     except Exception:
         return None
@@ -1436,9 +1442,15 @@ def _mp3_duration_ms(path: str) -> int:
     return int(total_seconds * 1000)
 
 
-def main() -> None:
-    _show_startup_splash()
-    AngisIDE().mainloop()
+def main(file_to_open: str | Path | None = None) -> None:
+    root = AngisIDE()
+    if file_to_open is not None:
+        file_path = Path(file_to_open).expanduser().resolve()
+        content = file_path.read_text(encoding="utf-8")
+        root._add_tab(file_path, content)
+        root.title(f"{_lang_ui('window_title')} - {file_path.name}")
+    _show_startup_splash(root)
+    root.mainloop()
 
 
 if __name__ == "__main__":

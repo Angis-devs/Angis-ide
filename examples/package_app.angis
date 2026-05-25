@@ -1,0 +1,11 @@
+# Folder package demo
+
+use package packages/tools as kit
+
+Call, kit.math.numbers.double with 6 as doubled.
+Call, kit.math.numbers.triple with 5 as tripled.
+Call, kit.text.names.echo with Ada as name.
+
+Show doubled.
+Show tripled.
+Show name.

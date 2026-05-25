@@ -1,0 +1,319 @@
+App, Angis Full Capabilities Demo.
+Scene, true 3D.
+Window size 1000 by 700.
+camera at x 0 y 0 z -14.
+mode third person.
+
+Set demo_step to 0.
+Set started to false.
+
+Create text named step_label at x 0 y 280 z 0 saying "Angis: Full Language Capabilities Demo".
+Set step_label color to white.
+Set step_label size to 14.
+
+Create text named code_display at x 0 y 240 z 0 saying "19 categories | Press Space or click to begin".
+Set code_display color to #aaaaaa.
+Set code_display size to 10.
+
+Create sphere named demo_sphere at x -3 y 0 z 0.
+Set demo_sphere color to #4488ff.
+Set demo_sphere size to 1.0.
+Set demo_sphere auto_rotate_x to 0.02.
+Set demo_sphere auto_rotate_y to 0.03.
+
+Create cube named demo_cube at x 3 y 0 z 0.
+Set demo_cube color to #ff6644.
+Set demo_cube size to 0.9.
+Set demo_cube auto_rotate_y to 0.05.
+
+Create pyramid named demo_pyramid at x -3 y -3 z 0.
+Set demo_pyramid color to #44ff88.
+Set demo_pyramid size to 0.9.
+Set demo_pyramid auto_rotate_y to -0.04.
+
+Create cylinder named demo_cylinder at x 3 y -3 z 0.
+Set demo_cylinder color to #ffaa44.
+Set demo_cylinder size to 0.8.
+Set demo_cylinder auto_rotate_x to 0.03.
+
+Create torus named demo_torus at x 0 y 3 z 0.
+Set demo_torus color to #ff44ff.
+Set demo_torus size to 0.8.
+Set demo_torus auto_rotate_y to 0.04.
+
+Create text named var_display at x 0 y -50 z 0 saying "".
+Set var_display color to #88ff88.
+Set var_display size to 11.
+
+Create text named list_display at x 0 y -100 z 0 saying "".
+Set list_display color to #ffcc88.
+Set list_display size to 11.
+
+Create text named event_log at x 0 y -180 z 0 saying "Angis Capabilities Demo — Press Space or click to start".
+Set event_log color to #8888ff.
+Set event_log size to 11.
+
+Create text named help_text at x 0 y -230 z 0 saying "Space = next  |  R = reset  |  Click = next step  |  19 categories".
+Set help_text color to #666666.
+Set help_text size to 9.
+
+Set titles to ["1/19 Variables & Data Types", "2/19 Expressions & Operators", "3/19 Control Flow: If/Else/Unless", "4/19 Loops: While/For/Repeat", "5/19 Lists", "6/19 Maps & Dictionaries", "7/19 Functions & Recursion", "8/19 Blueprints & Methods", "9/19 File I/O", "10/19 Text Operations", "11/19 Math & Random", "12/19 List Comprehensions", "13/19 Custom DSL Phrases", "14/19 Python Interop", "15/19 Error Handling", "16/19 Time & Date", "17/19 Path Operations", "18/19 3D Graphics", "19/19 Events: Click / Key / Timer"].
+
+Set descs to ["set to / add / subtract / multiply / divide | integers floats strings booleans", "plus minus times over mod | + - * / % ** | is greater than less than equals", "if / else / unless / and / or / not | contains / starts with / is between", "while / for each / repeat N times | break / continue | range from A to B", "create list / add / put / remove | sort / reverse / shuffle | first last random", "create dict / set / get / keys / values / merge | blueprints with fields", "define / call / return | recursion | parameters | yield generators", "blueprint / create instance / methods with self | inheritance", "write / read file | copy / move / delete | info / exists / glob / list dir", "split / join / replace | upper / lower / trim | length / letters / regex", "round / floor / ceil / abs | sqrt / pow / clamp | random number / item", "for each collect / filter / reduce | lambda arrow fn | map transform", "define phrase {name:type} slots | optional words | custom commands", "import python / run python: / eval python | {{py: inline}}", "try / except / finally | raise error | assert", "get current time / timestamp / todays date | date arithmetic", "get file name / ext / folder / stem | join path", "sphere cube pyramid cylinder torus | auto-rotate | colors sizes positions", "on click / when key pressed / every N ms | mouse moved | collision"].
+
+Set total to length of titles.
+
+Define, show_step with n:
+    Get item at index n of titles as t.
+    Get item at index n of descs as d.
+    Set step_label text to t.
+    Set code_display text to d.
+
+on click:
+    If started is false:
+        Set started to true.
+        show_step with 0.
+        Set demo_step to 1.
+    If started is true:
+        If demo_step is less than total:
+            show_step with demo_step.
+            Set demo_step to demo_step + 1.
+        If demo_step is at least total:
+            Set demo_step to 0.
+            show_step with 0.
+
+When key space pressed:
+    If started is false:
+        Set started to true.
+        show_step with 0.
+        Set demo_step to 1.
+    If started is true:
+        If demo_step is less than total:
+            show_step with demo_step.
+            Set demo_step to demo_step + 1.
+        If demo_step is at least total:
+            Set demo_step to 0.
+            show_step with 0.
+
+When key r pressed:
+    Set demo_step to 0.
+    Set started to false.
+    Set step_label text to "Angis: Full Language Capabilities Demo".
+    Set code_display text to "19 categories | Press Space or click to begin".
+    Set var_display text to "".
+    Set list_display text to "".
+
+Define, run_step:
+    Set idx to demo_step - 1.
+    If idx is 0:
+        Set x to 42.
+        Set y to 3.14.
+        Set ready to true.
+        Set name to "Angis".
+        Turn x into text as xs.
+        Turn y into text as ys.
+        Turn ready into text as rds.
+        Set var_display text to "int: " + xs + "  float: " + ys + "  bool: " + rds + "  str: " + name.
+        Set list_display text to "Types: integer / float / string / boolean / list / map".
+    If idx is 1:
+        Set a to (5 + 3) * 2.
+        Set b to 10 / 3.
+        Set c to a is greater than 10.
+        Raise 2 to power 8 as p.
+        Turn a into text as as.
+        Turn p into text as ps.
+        Turn c into text as cs.
+        Set var_display text to "(5+3)*2=" + as + "  10/3=3.33  >10:" + cs + "  2^8=" + ps.
+        Set list_display text to "Operators: + - * / % ** plus minus times over mod".
+    If idx is 2:
+        Set score to 75.
+        Set grade to "Fail".
+        If score is at least 70:
+            Set grade to "Pass".
+        Unless score is less than 0:
+            Set valid to "ok".
+        Turn score into text as ss.
+        Set var_display text to "score:" + ss + " grade:" + grade + " valid:" + valid.
+        Set list_display text to "if/else/unless | and/or/not | contains/starts with/is between".
+    If idx is 3:
+        Set sum to 0.
+        Set n to 1.
+        While n is at most 5:
+            Set sum to sum + n.
+            Set n to n + 1.
+        For each x in range from 1 to 4:
+            Set sum to sum + x.
+        Repeat 3 times:
+            Set sum to sum + 10.
+        Turn sum into text as ss.
+        Set var_display text to "while+for+repeat sum = " + ss.
+        Set list_display text to "while / for each / repeat N / break / continue / range".
+    If idx is 4:
+        Create list named bag with sword, shield, potion.
+        Add "ring" to list bag.
+        Put "helm" in bag.
+        Remove shield from bag.
+        Sort bag as sorted.
+        Reverse sorted as rev.
+        Pick random item from rev as lucky.
+        Get first item of rev as fi.
+        Get last item of rev as li.
+        Turn rev into text as rs.
+        Set var_display text to "bag: " + rs + "  lucky: " + lucky.
+        Set list_display text to "first:" + fi + " last:" + li + " | add/put/remove/sort/reverse/shuffle".
+    If idx is 5:
+        Create dictionary named hero with name: Ada, score: 42, health: 100.
+        Set hero.level to 5.
+        Get score from hero as hs.
+        Get keys from hero as ks.
+        Turn hero into text as hs2.
+        Turn ks into text as kss.
+        Turn hs into text as hss.
+        Set var_display text to "hero: " + hs2 + "  score: " + hss.
+        Set list_display text to "keys: " + kss.
+    If idx is 6:
+        Call, greet with "World" as g.
+        Call, add_pair with 7 and 8 as ad.
+        Call, fact with 6 as ft.
+        Turn ad into text as ads.
+        Turn ft into text as fts.
+        Set var_display text to g + "  7+8=" + ads + "  6!=" + fts.
+        Set list_display text to "define/call/return | recursion | parameters | generators".
+    If idx is 7:
+        Create Player named mage with name: "Merlin", hp: 80, mana: 120.
+        Call, mage.heal with 5 as hr.
+        Turn mage.hp into text as hps.
+        Turn mage.mana into text as mns.
+        Set var_display text to "Merlin hp:" + hps + " mana:" + mns.
+        Set list_display text to "blueprint / create instance / methods / self / field access".
+    If idx is 8:
+        Write "hello angis" to file "/tmp/angis_demo.txt" as wr.
+        Get file name of "/tmp/angis_demo.txt" as fn.
+        Get file extension of "/tmp/angis_demo.txt" as fe.
+        Turn wr into text as wrs.
+        Set var_display text to "write:" + wrs + " name:" + fn + " ext:" + fe.
+        Set list_display text to "write/read/copy/move/delete | info/exists/glob/list dir".
+    If idx is 9:
+        Set sample to "  Hello Angis World!  ".
+        Get uppercase of sample as up.
+        Get lowercase of sample as lw.
+        Get trimmed text of sample as tr.
+        Split tr by space as words.
+        Join words with "-" as slug.
+        Replace "Angis" in tr with "ANGIS" as rp.
+        Turn words into text as ws.
+        Set var_display text to "slug: " + slug + "  upper: " + up.
+        Set list_display text to "words: " + ws + "  replaced: " + rp.
+    If idx is 10:
+        Round 3.7 as rd.
+        Floor 3.7 as fl.
+        Ceil 3.2 as cl.
+        Absolute -5 as ab.
+        Calculate square root of 81 as sq.
+        Raise 2 to power 10 as pw.
+        Clamp 14 between 1 and 10 as cp.
+        Pick random number between 1 and 100 as rn.
+        Turn rd into text as rds.
+        Turn sq into text as sqs.
+        Turn cp into text as cps.
+        Turn pw into text as pws.
+        Turn rn into text as rns.
+        Set var_display text to "round:" + rds + " sqrt81=" + sqs + " 2^10=" + pws.
+        Set list_display text to "clamp:" + cps + " random:" + rns + " | sin/cos/tan/log/exp".
+    If idx is 11:
+        Set nums to [1, 2, 3, 4, 5].
+        Set dbl to for each x in nums collect x * 2.
+        Set sqs2 to for each x in nums collect x * x.
+        Set big to [].
+        For each y in nums:
+            If y is greater than 2:
+                Add y to list big.
+        Set tot to 0.
+        For each z in nums:
+            Set tot to tot + z.
+        Turn dbl into text as dbs.
+        Turn big into text as bgs.
+        Turn tot into text as tos.
+        Turn sqs2 into text as sq2s.
+        Set var_display text to "doubled: " + dbs + "  squares: " + sq2s.
+        Set list_display text to "filtered>2: " + bgs + "  total: " + tos.
+    If idx is 12:
+        Create dictionary named p with score: 0.
+        award 50 points to p.
+        award 25 points to p.
+        Turn p.score into text as pss.
+        Set var_display text to "Custom DSL: award X points to Y  →  p.score=" + pss.
+        Set list_display text to "define phrase | {name:type} slots | optional/alternative words".
+    If idx is 13:
+        import python math as math_mod.
+        Run python: py_val = 42 * 2.
+        Eval python math_mod.sqrt(144) as sqrt_py.
+        Turn py_val into text as pys.
+        Turn sqrt_py into text as sps.
+        Set var_display text to "python 42*2=" + pys + "  sqrt(144)=" + sps.
+        Set list_display text to "import python / run python: / eval python / {{py: inline}}".
+    If idx is 14:
+        Try:
+            Raise error "Test error".
+        Except as err:
+            Set em to "Caught: " + err.
+        Assert 2 + 2 is 4 else "math broken".
+        Set var_display text to em + "  |  assert 2+2=4 ok".
+        Set list_display text to "try/except/finally | raise error | assert | custom error types".
+    If idx is 15:
+        Get current time as now.
+        Get timestamp as epoch.
+        Get todays date as today.
+        Turn epoch into text as eps.
+        Set var_display text to "now: " + now + "  epoch: " + eps + "  date: " + today.
+        Set list_display text to "get current time / timestamp / todays date / date arithmetic".
+    If idx is 16:
+        Get file name from "/tmp/folder/data.csv" as fn2.
+        Get file extension from "/tmp/folder/data.csv" as fe2.
+        Get folder from "/tmp/folder/data.csv" as fld.
+        Get stem from "/tmp/folder/data.csv" as stm.
+        Join path "/tmp" with "output.txt" as jn.
+        Set var_display text to "name:" + fn2 + " ext:" + fe2 + " folder:" + fld.
+        Set list_display text to "stem:" + stm + " joined:" + jn.
+    If idx is 17:
+        Set demo_sphere color to #ff4488.
+        Set demo_cube color to #44ff88.
+        Set demo_pyramid color to #ffaa44.
+        Set var_display text to "3D shapes: sphere / cube / pyramid / cylinder / torus".
+        Set list_display text to "auto-rotate | perspective camera | colors | sizes | positions".
+    If idx is 18:
+        Set var_display text to "Events: click advances steps | space=next | r=reset".
+        Set list_display text to "on click / when key pressed / every N ms / mouse moved".
+
+every 30 ms:
+    If started is false:
+        break.
+    If demo_step is 0:
+        Set event_log text to "Angis Capabilities Demo — Press Space or click to start".
+        break.
+    run_step.
+    Set snum to demo_step.
+    Turn snum into text as sn.
+    Turn total into text as tn.
+    Set event_log text to "Step " + sn + " of " + tn + " — Press Space or click for next".
+
+Define, greet with name:
+    Return "Hello " + name + "!".
+
+Define, add_pair with left and right:
+    Return left + right.
+
+Define, fact with n:
+    If n is at most 1:
+        Return 1.
+    Return n * fact(n - 1).
+
+Define phrase award {amount} points to {target}:
+    Set target.score to target.score + amount.
+
+Blueprint Player with name: "Unknown", hp: 100, mana: 50.
+
+Define method heal for Player with amount:
+    Set self.hp to self.hp + amount.
+    Turn amount into text as amt_s.
+    Return self.name + " healed by " + amt_s.
