@@ -91,3 +91,14 @@ Say, It does not have source-control hosting, issue tracking, PR review automati
 Say, It does not have support guarantees, SLAs, governance, formal roadmap, or production incident ownership yet.
 Say, It does not have every possible phrase because human language is too open-ended; new wording still needs teaching or parser work.
 Say, It does not have every possible capability because Angis is a growing language layer, not a finished universal platform.
+Say, Concise missing list: deep systems work, including kernels, drivers, bootloaders, firmware, and real-time systems.
+Say, Concise missing list: production web stacks, including full routing, SSR, hydration, bundling, auth, migrations, and deployment adapters.
+Say, Concise missing list: advanced engines, including Unity or Unreal level rendering, physics, shaders, asset pipelines, and multiplayer systems.
+Say, Concise missing list: mobile builds, including native iOS and Android app packaging and app-store workflows.
+Say, Concise missing list: mature package ecosystem, including package registry, dependency resolver, lockfiles, signing, and vulnerability scans.
+Say, Concise missing list: full IDE tooling, including language server, autocomplete, formatter, refactoring, rich debugger, and profiler.
+Say, Concise missing list: hardened security, including sandboxing, permission isolation, code signing, and audit systems.
+Say, Concise missing list: cloud and devops, including Kubernetes, serverless, CI/CD, observability, and infra planning.
+Say, Concise missing list: advanced AI and data, including training, serving, vector DBs, big data pipelines, notebooks, and experiment tracking.
+Say, Concise missing list: enterprise and regulatory systems, including SSO, RBAC, audit logs, and compliance-certified controls.
+Say, Concise missing list: guaranteed production performance, backwards compatibility, and complete documentation.
