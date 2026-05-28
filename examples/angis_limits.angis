@@ -1,0 +1,21 @@
+# What Angis cannot do yet
+
+Say, Angis can be taught new wording, but it still has real limits.
+Say, It only understands phrases the parser knows, or phrases you define with Define phrase, When I say, or Teach Angis.
+Say, It is not a full replacement for Python, C, or JavaScript yet.
+Say, Complex low-level systems code, drivers, kernels, compilers, advanced networking, and native apps still need host languages or libraries.
+Say, Some features depend on installed Python packages like pygame, OpenGL, databases, or other imports.
+Say, The Desktop copy and Apps copy are not the same version.
+Say, /Users/fellflow/Apps/Angis is newer and supports more natural Teach Angis flow.
+Say, It cannot guess every possible sentence.
+Say, If wording is too vague, it needs a phrase definition.
+Say, It does not have a mature package ecosystem like npm or pip.
+Say, It does not automatically know every API unless you bridge or import it.
+Say, Visual apps and games are prototype-level, not production game-engine level.
+Say, 3D exists, but not like Unity or Unreal.
+Say, Browser and web deployment exist in limited form, not a full React or Next.js style web stack.
+Say, Security and permissions are basic.
+Say, It is not a hardened sandbox.
+Say, Error messages can still be rough when a phrase fails.
+Say, Refactoring, autocomplete, type checking, debugging, and IDE tooling are not as mature as mainstream languages.
+Say, Some phrase-slot edge cases still need fixes as they are found.

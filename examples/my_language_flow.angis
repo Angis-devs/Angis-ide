@@ -1,0 +1,149 @@
+# Custom Angis coding in your own language flow
+
+Blueprint Player with name: Fell, score: 0, mood: focused.
+Create Player named me with name: Fell Flow.
+Create list named crate with beat, code, flow.
+Create dictionary named profile with name: Fell Flow, language: Angis, mode: custom.
+
+Teach Angis bless {target:name} with {amount:number} bars to do:
+    Set, target.score to target.score + amount.
+    Return, target.score.
+
+When I say drop {line:text}, do:
+    Show, "Fell Flow: " + line.
+
+Teach Angis flex {message:text} to do Show, "Flex: " + message.
+Teach Angis lock in {message:text} to do Show, "Locked: " + message.
+
+Teach Angis stash {content:text} inside {path:path} to do:
+    Write text content to file path as stashResult.
+    Return, stashResult.
+
+Teach Angis pull from {path:path} to do:
+    Read file path as pulledText.
+    Return, pulledText.
+
+Teach Angis make tag from {message:text} to do:
+    Slugify message as tagText.
+    Return, tagText.
+
+Teach Angis loud {message:text} to do:
+    Set loudText to text uppercase with text: message.
+    Return, loudText.
+
+Teach Angis quiet {message:text} to do:
+    Set quietText to text lowercase with text: message.
+    Return, quietText.
+
+Teach Angis swap {old:text} inside {source:text} with {new:text} to do:
+    Replace old in source with new as swappedText.
+    Return, swappedText.
+
+Teach Angis count my {items:name} to do:
+    Count length of items as itemCount.
+    Return, itemCount.
+
+Teach Angis grab {index:number} from {items:name} to do:
+    Run list at with values: items, index: index as pickedItem.
+    Return, pickedItem.
+
+Teach Angis check key {key:text} in {value:name} to do:
+    Get map has with value: value, key: key as keyExists.
+    Return, keyExists.
+
+Teach Angis pack {value:name} to do:
+    Turn value into JSON as packedJson.
+    Return, packedJson.
+
+Teach Angis unpack demo json to do:
+    Parse JSON {"tool": "json", "status": "ready"} as unpackedJson.
+    Return, unpackedJson.
+
+Teach Angis make id to do:
+    Make uuid as freshId.
+    Return, freshId.
+
+Teach Angis seal {message:text} to do:
+    Hash text message with sha256 as sealedText.
+    Return, sealedText.
+
+Teach Angis clean secrets from {message:text} to do:
+    Redact secrets in text message as cleanText.
+    Return, cleanText.
+
+Teach Angis flip fate to do:
+    Flip coin as fate.
+    Return, fate.
+
+Teach Angis square root of {value:number} to do:
+    Calculate square root of value as rootValue.
+    Return, rootValue.
+
+Teach Angis clamp {value:number} from {low:number} to {high:number} to do:
+    Tell math to clamp with value: value, min: low, max: high as clampedValue.
+    Return, clampedValue.
+
+Teach Angis what time to do:
+    Get current time as flowTime.
+    Return, flowTime.
+
+Teach Angis what Angis cant do yet to do:
+    Show, "Angis only understands parser phrases or phrases you define."
+    Show, "It is not a full Python, C, or JavaScript replacement yet."
+    Show, "Low-level systems, drivers, kernels, compilers, advanced networking, and native apps still need host languages or libraries."
+    Show, "Some features need installed Python packages like pygame, OpenGL, databases, or other imports."
+    Show, "The Apps copy is newer than the Desktop copy and supports more natural Teach Angis flow."
+    Show, "Vague wording needs a phrase definition."
+    Show, "The package ecosystem is not mature like npm or pip."
+    Show, "Unknown APIs need a bridge or import."
+    Show, "Apps and games are prototype-level."
+    Show, "3D exists, but not like Unity or Unreal."
+    Show, "Browser and web deployment are limited, not a full React or Next.js stack."
+    Show, "Security and permissions are basic, not a hardened sandbox."
+    Show, "Errors and IDE tooling are not as mature as mainstream languages."
+    Show, "Some phrase-slot edge cases still need fixes."
+
+Bless me with 16 bars as firstBlessing.
+Bless me with 8 bars.
+Drop Angis stays in my language.
+Flex custom coding unlocked.
+Lock in custom phrases can carry real tools.
+Stash Fell Flow saved this from Angis inside examples/my_language_flow_note.txt as savedNote.
+Pull from examples/my_language_flow_note.txt as noteText.
+Make tag from Custom Coding In My Language as tag.
+Loud keep it in my flow as loudFlow.
+Quiet BIG FLOW ENERGY as quietFlow.
+Swap old inside old code flow with new as swappedFlow.
+Count my crate as crateCount.
+Grab 1 from crate as cratePick.
+Check key mode in profile as hasMode.
+Pack profile as profileJson.
+Unpack demo json as toolData.
+Make id as customId.
+Seal keep this flow yours as sealedFlow.
+Clean secrets from token=abc password=hunter2 email=fell@example.com as cleanedLine.
+Flip fate as fateResult.
+Square root of 81 as rootResult.
+Clamp 14 from 1 to 10 as clampedResult.
+What time as nowFlow.
+What Angis cant do yet.
+Show, firstBlessing.
+Show, me.score.
+Show, savedNote.
+Show, noteText.
+Show, tag.
+Show, loudFlow.
+Show, quietFlow.
+Show, swappedFlow.
+Show, crateCount.
+Show, cratePick.
+Show, hasMode.
+Show, profileJson.
+Show, toolData.
+Show, customId.
+Show, sealedFlow.
+Show, cleanedLine.
+Show, fateResult.
+Show, rootResult.
+Show, clampedResult.
+Show, nowFlow.

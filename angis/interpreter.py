@@ -2296,6 +2296,13 @@ class Interpreter:
     def _evaluate_stdlib_arg(self, key: str, value: Expression) -> object:
         if key == "name":
             return _capability_name_from_expr(value)
+        if isinstance(value, str):
+            if value in self.variables:
+                return self.variables[value]
+            if value in self.lists:
+                return self.lists[value]
+            if value in self.maps:
+                return self.maps[value]
         if isinstance(value, Reference):
             if value.name in self.variables:
                 return self.variables[value.name]
