@@ -1,0 +1,42 @@
+App, Offline AI Assistant.
+
+Say "Offline Angis AI Assistant".
+Say "Type anything. I will answer, read emotion, pull keywords, summarize, and classify it.".
+
+Ask input with prompt "You: " as userText.
+
+Use ai chat with text: userText as aiReply.
+Use ai sentiment with text: userText as mood.
+Use ai keywords with text: userText as keywords.
+Use ai summarize with text: userText, sentences: 1 as summary.
+Use ai count_words with text: userText as wordCount.
+Use ai detect_language with text: userText as language.
+Use ai classify with text: userText, categories: {music: [rap, beat, song, studio, lyric, rhyme, album], tech: [computer, code, network, cyber, ai, python, app], health: [pain, doctor, medicine, body, diagnosis], life: [love, family, friend, money, work]} as category.
+
+Use json stringify with value: keywords as keywordsText.
+
+Say "".
+Say "AI reply:".
+Show aiReply.
+
+Say "".
+Say "Text analysis:".
+Say "Mood:".
+Show mood.
+Say "Keywords:".
+Show keywordsText.
+Say "Summary:".
+Show summary.
+Say "Word count:".
+Show wordCount.
+Say "Language:".
+Show language.
+Say "Category:".
+Show category.
+
+If mood is positive:
+    Say "AI note: I hear good energy in that.".
+If mood is negative:
+    Say "AI note: That sounds heavy. I am here with you.".
+If mood is neutral:
+    Say "AI note: I read that as calm or informational.".

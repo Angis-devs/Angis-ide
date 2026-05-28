@@ -400,24 +400,34 @@ def _collect_command_templates(lines: list[SourceLine]) -> list[CommandTemplate]
 
 def _phrase_definition_text(text: str) -> str | None:
     if _is_block_header(text):
-        header = _strip_trailing_period(text[:-1].strip())
-        phrase_match = re.fullmatch(r"(?:define\s+phrase|phrase)\s*,?\s*(?P<body>.+)", header, re.I)
-        if phrase_match:
-            return phrase_match.group("body")
-        phrase_match = re.fullmatch(r"when\s+i\s+say\s+(?P<body>.+)", header, re.I)
-        if not phrase_match:
-            return None
-        return phrase_match.group("body")
-    phrase_match = re.fullmatch(r"(?:define\s+phrase|phrase)\s*,?\s*(?P<body>.+?)\s+means\s+.+", _strip_trailing_period(text), re.I)
+        return _phrase_body_from_block_header(_strip_trailing_period(text[:-1].strip()))
+    phrase_match = re.fullmatch(r"(?:define\s+phrase|phrase)\s*,?\s*(?P<body>.+?)\s+(?:means|does|runs?|makes?)\s+.+", _strip_trailing_period(text), re.I)
     if phrase_match:
         return phrase_match.group("body")
-    phrase_match = re.fullmatch(r"when\s+i\s+say\s+(?P<body>.+?),?\s+it\s+means\s+.+", _strip_trailing_period(text), re.I)
+    phrase_match = re.fullmatch(r"when\s+i\s+say\s+(?P<body>.+?),?\s+(?:it\s+)?(?:means|does|runs?|makes?)\s+.+", _strip_trailing_period(text), re.I)
     if phrase_match:
         return phrase_match.group("body")
-    phrase_match = re.fullmatch(r"teach\s+angis\s+(?P<body>.+?)\s+to\s+mean\s+.+", _strip_trailing_period(text), re.I)
+    phrase_match = re.fullmatch(r"teach\s+angis\s+(?P<body>.+?)\s+to\s+(?:mean|do|run|make|understand)\s+.+", _strip_trailing_period(text), re.I)
     if not phrase_match:
         return None
     return phrase_match.group("body")
+
+
+def _strip_phrase_action_suffix(text: str) -> str:
+    return re.sub(r"\s*,?\s+(?:do|run|make|mean|understand)\s*$", "", text.strip(), flags=re.I)
+
+
+def _phrase_body_from_block_header(header: str) -> str | None:
+    phrase_match = re.fullmatch(r"(?:define\s+phrase|phrase)\s*,?\s*(?P<body>.+)", header, re.I)
+    if phrase_match:
+        return phrase_match.group("body")
+    phrase_match = re.fullmatch(r"when\s+i\s+say\s+(?P<body>.+)", header, re.I)
+    if phrase_match:
+        return _strip_phrase_action_suffix(phrase_match.group("body"))
+    phrase_match = re.fullmatch(r"teach\s+angis\s+(?P<body>.+?)\s+to(?:\s+(?:do|run|make|mean|understand))?", header, re.I)
+    if phrase_match:
+        return phrase_match.group("body")
+    return None
 
 
 def _next_indent(lines: list[SourceLine], index: int, parent_indent: int) -> int:
@@ -488,7 +498,7 @@ def _parse_simple(line: SourceLine, command_templates: list[CommandTemplate]) ->
     return_match = re.fullmatch(r"return\s*,?\s*(?P<value>.+)", normalized, re.I)
     if return_match:
         raw = return_match.group("value")
-        from .intents import _split_items, parse_text_value
+        from .intents import _split_items
         parts = _split_items(raw)
         if len(parts) > 1:
             return ReturnValue(
@@ -824,11 +834,9 @@ def _parse_block_header(line: SourceLine, body: list[object]) -> object:
             confidence=0.99,
         )
 
-    phrase_match = re.fullmatch(r"(?:define\s+phrase|phrase)\s*,?\s*(?P<body>.+)", header, re.I)
-    if not phrase_match:
-        phrase_match = re.fullmatch(r"when\s+i\s+say\s+(?P<body>.+)", header, re.I)
-    if phrase_match:
-        name, params = _parse_phrase_definition(phrase_match.group("body"))
+    phrase_body = _phrase_body_from_block_header(header)
+    if phrase_body is not None:
+        name, params = _parse_phrase_definition(phrase_body)
         return FunctionDef(
             name=name,
             params=params,
@@ -1142,11 +1150,11 @@ def _parse_command_definition(text: str) -> tuple[str, list[str], dict[str, str]
 
 
 def _parse_inline_phrase_definition(normalized: str, line: SourceLine, command_templates: list[CommandTemplate]) -> FunctionDef | None:
-    match = re.fullmatch(r"(?:define\s+phrase|phrase)\s*,?\s*(?P<phrase>.+?)\s+means\s+(?P<body>.+)", normalized, re.I)
+    match = re.fullmatch(r"(?:define\s+phrase|phrase)\s*,?\s*(?P<phrase>.+?)\s+(?:means|does|runs?|makes?)\s+(?P<body>.+)", normalized, re.I)
     if not match:
-        match = re.fullmatch(r"when\s+i\s+say\s+(?P<phrase>.+?),?\s+it\s+means\s+(?P<body>.+)", normalized, re.I)
+        match = re.fullmatch(r"when\s+i\s+say\s+(?P<phrase>.+?),?\s+(?:it\s+)?(?:means|does|runs?|makes?)\s+(?P<body>.+)", normalized, re.I)
     if not match:
-        match = re.fullmatch(r"teach\s+angis\s+(?P<phrase>.+?)\s+to\s+mean\s+(?P<body>.+)", normalized, re.I)
+        match = re.fullmatch(r"teach\s+angis\s+(?P<phrase>.+?)\s+to\s+(?:mean|do|run|make|understand)\s+(?P<body>.+)", normalized, re.I)
     if not match:
         return None
     name, params = _parse_phrase_definition(match.group("phrase"))
@@ -1209,12 +1217,10 @@ def _register_command_template(text: str, instruction: object, command_templates
     if not isinstance(instruction, FunctionDef):
         return
     header = _strip_trailing_period(text[:-1].strip())
-    phrase_match = re.fullmatch(r"(?:define\s+phrase|phrase)\s*,?\s*(?P<body>.+)", header, re.I)
-    if not phrase_match:
-        phrase_match = re.fullmatch(r"when\s+i\s+say\s+(?P<body>.+)", header, re.I)
-    if not phrase_match:
+    phrase_body = _phrase_body_from_block_header(header)
+    if phrase_body is None:
         return
-    regex, slots = _phrase_regex(phrase_match.group("body"))
+    regex, slots = _phrase_regex(phrase_body)
     command_templates.append((regex, instruction.name, slots))
 
 

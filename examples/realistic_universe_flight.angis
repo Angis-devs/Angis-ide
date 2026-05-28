@@ -1,0 +1,239 @@
+App, Realistic 3D Universe Flight.
+Scene, true 3D.
+Window size 1000 by 700.
+camera at x 0 y 0 z -10.
+mode third person.
+
+Set ship_x to 150.
+Set ship_y to 150.
+Set ship_z to 0.
+Set ship_speed to 8.
+Set moving_fwd to false.
+Set moving_back to false.
+Set moving_left to false.
+Set moving_right to false.
+Set moving_up to false.
+Set moving_down to false.
+Set flight_time to 0.
+
+Create sphere named bird at x 150 y 150 z 0.
+Set bird color to #00e5ff.
+Set bird size to 0.35.
+Set bird auto_rotate_y to 0.08.
+
+Create text named hud at x 0 y 300 z 0 saying "REALISTIC UNIVERSE FLIGHT — W/S forward/back  A/D strafe  Space up  C down".
+Set hud color to white.
+Set hud size to 11.
+
+Create text named pos_hud at x 0 y 275 z 0 saying "Position: 150 150 0".
+Set pos_hud color to #88ccff.
+Set pos_hud size to 9.
+
+Create sphere named sun at x 150 y 150 z 900.
+Set sun color to #ffd166.
+Set sun size to 3.8.
+Set sun auto_rotate_y to 0.01.
+
+Create sphere named mercury at x 70 y 130 z 760.
+Set mercury color to #9ca3af.
+Set mercury size to 0.55.
+Set mercury auto_rotate_y to 0.07.
+
+Create sphere named venus at x 250 y 180 z 700.
+Set venus color to #f59e0b.
+Set venus size to 0.85.
+Set venus auto_rotate_y to 0.04.
+
+Create sphere named earth at x 35 y 215 z 610.
+Set earth color to #3b82f6.
+Set earth size to 0.95.
+Set earth auto_rotate_y to 0.08.
+
+Create sphere named moon at x 58 y 230 z 596.
+Set moon color to #cbd5e1.
+Set moon size to 0.28.
+Set moon auto_rotate_y to 0.05.
+
+Create sphere named mars at x 285 y 95 z 530.
+Set mars color to #ef4444.
+Set mars size to 0.75.
+Set mars auto_rotate_y to 0.06.
+
+Create sphere named jupiter at x -80 y 240 z 430.
+Set jupiter color to #d97706.
+Set jupiter size to 2.4.
+Set jupiter auto_rotate_y to 0.09.
+
+Create sphere named saturn at x 380 y 120 z 350.
+Set saturn color to #fbbf24.
+Set saturn size to 1.9.
+Set saturn auto_rotate_y to 0.07.
+
+Create torus named saturn_ring at x 380 y 120 z 350.
+Set saturn_ring color to #fde68a.
+Set saturn_ring size to 2.6.
+Set saturn_ring scale_y to 0.25.
+Set saturn_ring auto_rotate_z to 0.015.
+
+Create sphere named neptune at x -210 y 95 z 260.
+Set neptune color to #2563eb.
+Set neptune size to 1.2.
+Set neptune auto_rotate_y to 0.04.
+
+Create sphere named black_hole at x 150 y 150 z 1200.
+Set black_hole color to #050505.
+Set black_hole size to 2.1.
+Set black_hole auto_rotate_y to 0.2.
+
+Create torus named accretion_disk at x 150 y 150 z 1200.
+Set accretion_disk color to #ff7a18.
+Set accretion_disk size to 3.7.
+Set accretion_disk scale_y to 0.18.
+Set accretion_disk auto_rotate_z to 0.18.
+
+Create torus named galaxy_ring1 at x -260 y 260 z 980.
+Set galaxy_ring1 color to #a78bfa.
+Set galaxy_ring1 size to 4.2.
+Set galaxy_ring1 scale_y to 0.1.
+Set galaxy_ring1 auto_rotate_z to 0.025.
+
+Create torus named galaxy_ring2 at x -260 y 260 z 980.
+Set galaxy_ring2 color to #67e8f9.
+Set galaxy_ring2 size to 2.7.
+Set galaxy_ring2 scale_y to 0.1.
+Set galaxy_ring2 auto_rotate_z to -0.04.
+
+Create sphere named asteroid1 at x 30 y 75 z 470.
+Set asteroid1 color to #78716c.
+Set asteroid1 size to 0.28.
+Set asteroid1 auto_rotate_x to 0.16.
+Set asteroid1 auto_rotate_y to 0.1.
+
+Create sphere named asteroid2 at x 80 y 260 z 455.
+Set asteroid2 color to #57534e.
+Set asteroid2 size to 0.22.
+Set asteroid2 auto_rotate_x to -0.12.
+Set asteroid2 auto_rotate_y to 0.08.
+
+Create sphere named asteroid3 at x 225 y 75 z 445.
+Set asteroid3 color to #a8a29e.
+Set asteroid3 size to 0.33.
+Set asteroid3 auto_rotate_x to 0.07.
+Set asteroid3 auto_rotate_y to -0.13.
+
+Create sphere named asteroid4 at x 315 y 255 z 440.
+Set asteroid4 color to #44403c.
+Set asteroid4 size to 0.24.
+Set asteroid4 auto_rotate_x to 0.18.
+Set asteroid4 auto_rotate_y to 0.04.
+
+Create sphere named asteroid5 at x -45 y 160 z 420.
+Set asteroid5 color to #6b7280.
+Set asteroid5 size to 0.3.
+Set asteroid5 auto_rotate_x to -0.1.
+Set asteroid5 auto_rotate_y to 0.11.
+
+Create sphere named star1 at x -350 y 320 z 220.
+Set star1 color to #ffffff.
+Set star1 size to 0.12.
+
+Create sphere named star2 at x 500 y 330 z 300.
+Set star2 color to #dbeafe.
+Set star2 size to 0.16.
+
+Create sphere named star3 at x -420 y 40 z 390.
+Set star3 color to #fff7ed.
+Set star3 size to 0.1.
+
+Create sphere named star4 at x 600 y 30 z 515.
+Set star4 color to #e0f2fe.
+Set star4 size to 0.13.
+
+Create sphere named star5 at x -120 y 390 z 635.
+Set star5 color to #ffffff.
+Set star5 size to 0.11.
+
+Create sphere named star6 at x 410 y -90 z 720.
+Set star6 color to #fef3c7.
+Set star6 size to 0.15.
+
+Create sphere named star7 at x -520 y 260 z 860.
+Set star7 color to #dbeafe.
+Set star7 size to 0.14.
+
+Create sphere named star8 at x 690 y 250 z 1020.
+Set star8 color to #ffffff.
+Set star8 size to 0.1.
+
+Create sphere named star9 at x -610 y -30 z 1160.
+Set star9 color to #fef9c3.
+Set star9 size to 0.18.
+
+Create sphere named star10 at x 520 y 450 z 1280.
+Set star10 color to #bfdbfe.
+Set star10 size to 0.12.
+
+When key w pressed:
+    Set moving_fwd to true.
+
+When key w released:
+    Set moving_fwd to false.
+
+When key s pressed:
+    Set moving_back to true.
+
+When key s released:
+    Set moving_back to false.
+
+When key a pressed:
+    Set moving_left to true.
+
+When key a released:
+    Set moving_left to false.
+
+When key d pressed:
+    Set moving_right to true.
+
+When key d released:
+    Set moving_right to false.
+
+When key space pressed:
+    Set moving_up to true.
+
+When key space released:
+    Set moving_up to false.
+
+When key c pressed:
+    Set moving_down to true.
+
+When key c released:
+    Set moving_down to false.
+
+Every 30 ms:
+    If moving_fwd is true:
+        Set ship_z to ship_z + ship_speed.
+    If moving_back is true:
+        Set ship_z to ship_z - ship_speed.
+    If moving_left is true:
+        Set ship_x to ship_x - ship_speed.
+    If moving_right is true:
+        Set ship_x to ship_x + ship_speed.
+    If moving_up is true:
+        Set ship_y to ship_y + ship_speed.
+    If moving_down is true:
+        Set ship_y to ship_y - ship_speed.
+    Set bird x to ship_x.
+    Set bird y to ship_y.
+    Set bird z to ship_z.
+    Set flight_time to flight_time + 1.
+    Spin earth by 0.8 degrees on y axis.
+    Spin moon by 1.6 degrees on y axis.
+    Spin mars by 0.6 degrees on y axis.
+    Spin jupiter by 1.2 degrees on y axis.
+    Spin saturn by 1.0 degrees on y axis.
+    Spin saturn_ring by 1.0 degrees on z axis.
+    Spin accretion_disk by 2 degrees on z axis.
+    Turn ship_x into text as sx.
+    Turn ship_y into text as sy.
+    Turn ship_z into text as sz.
+    Set pos_hud text to "Position: " + sx + " " + sy + " " + sz.

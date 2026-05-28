@@ -1,0 +1,187 @@
+App, Particle Simulation.
+Scene, canvas.
+Window size 800 by 560.
+Dark background.
+
+Create text named title at x 16 y 12 saying "Angis Particle Simulation".
+Set title color to #a855f7.
+Set title size to 18.
+
+Create text named info at x 16 y 40 saying "Particles bouncing in a box".
+Set info color to #94a3b8.
+Set info size to 12.
+
+Create rectangle named border at x 20 y 70.
+Set border width to 760.
+Set border height to 450.
+Set border color to #111827.
+Set border outline to #475569.
+
+Create circle named p1 at x 90 y 120.
+Set p1 color to #ff3b3b.
+Set p1 size to 24.
+
+Create circle named p2 at x 200 y 200.
+Set p2 color to #ffd93d.
+Set p2 size to 18.
+
+Create circle named p3 at x 320 y 160.
+Set p3 color to #22c55e.
+Set p3 size to 28.
+
+Create circle named p4 at x 480 y 260.
+Set p4 color to #3b82f6.
+Set p4 size to 22.
+
+Create circle named p5 at x 620 y 140.
+Set p5 color to #c084fc.
+Set p5 size to 26.
+
+Create circle named p6 at x 700 y 380.
+Set p6 color to #f97316.
+Set p6 size to 20.
+
+Set p1x to 90.
+Set p1y to 120.
+Set p1dx to 4.
+Set p1dy to 3.
+
+Set p2x to 200.
+Set p2y to 200.
+Set p2dx to -5.
+Set p2dy to 2.
+
+Set p3x to 320.
+Set p3y to 160.
+Set p3dx to 3.
+Set p3dy to -4.
+
+Set p4x to 480.
+Set p4y to 260.
+Set p4dx to -3.
+Set p4dy to 5.
+
+Set p5x to 620.
+Set p5y to 140.
+Set p5dx to 4.
+Set p5dy to -3.
+
+Set p6x to 700.
+Set p6y to 380.
+Set p6dx to -4.
+Set p6dy to -4.
+
+Set left_wall to 25.
+Set right_wall to 755.
+Set top_wall to 75.
+Set bottom_wall to 515.
+
+Set tick_count to 0.
+
+Every 25 milliseconds:
+    Add 1 to tick_count.
+
+    Set p1x to p1x + p1dx.
+    Set p1y to p1y + p1dy.
+    If p1x is less than left_wall:
+        Set p1x to left_wall.
+        Set p1dx to 0 - p1dx.
+    If p1x is greater than right_wall:
+        Set p1x to right_wall.
+        Set p1dx to 0 - p1dx.
+    If p1y is less than top_wall:
+        Set p1y to top_wall.
+        Set p1dy to 0 - p1dy.
+    If p1y is greater than bottom_wall:
+        Set p1y to bottom_wall.
+        Set p1dy to 0 - p1dy.
+    Set p1 x to p1x.
+    Set p1 y to p1y.
+
+    Set p2x to p2x + p2dx.
+    Set p2y to p2y + p2dy.
+    If p2x is less than left_wall:
+        Set p2x to left_wall.
+        Set p2dx to 0 - p2dx.
+    If p2x is greater than right_wall:
+        Set p2x to right_wall.
+        Set p2dx to 0 - p2dx.
+    If p2y is less than top_wall:
+        Set p2y to top_wall.
+        Set p2dy to 0 - p2dy.
+    If p2y is greater than bottom_wall:
+        Set p2y to bottom_wall.
+        Set p2dy to 0 - p2dy.
+    Set p2 x to p2x.
+    Set p2 y to p2y.
+
+    Set p3x to p3x + p3dx.
+    Set p3y to p3y + p3dy.
+    If p3x is less than left_wall:
+        Set p3x to left_wall.
+        Set p3dx to 0 - p3dx.
+    If p3x is greater than right_wall:
+        Set p3x to right_wall.
+        Set p3dx to 0 - p3dx.
+    If p3y is less than top_wall:
+        Set p3y to top_wall.
+        Set p3dy to 0 - p3dy.
+    If p3y is greater than bottom_wall:
+        Set p3y to bottom_wall.
+        Set p3dy to 0 - p3dy.
+    Set p3 x to p3x.
+    Set p3 y to p3y.
+
+    Set p4x to p4x + p4dx.
+    Set p4y to p4y + p4dy.
+    If p4x is less than left_wall:
+        Set p4x to left_wall.
+        Set p4dx to 0 - p4dx.
+    If p4x is greater than right_wall:
+        Set p4x to right_wall.
+        Set p4dx to 0 - p4dx.
+    If p4y is less than top_wall:
+        Set p4y to top_wall.
+        Set p4dy to 0 - p4dy.
+    If p4y is greater than bottom_wall:
+        Set p4y to bottom_wall.
+        Set p4dy to 0 - p4dy.
+    Set p4 x to p4x.
+    Set p4 y to p4y.
+
+    Set p5x to p5x + p5dx.
+    Set p5y to p5y + p5dy.
+    If p5x is less than left_wall:
+        Set p5x to left_wall.
+        Set p5dx to 0 - p5dx.
+    If p5x is greater than right_wall:
+        Set p5x to right_wall.
+        Set p5dx to 0 - p5dx.
+    If p5y is less than top_wall:
+        Set p5y to top_wall.
+        Set p5dy to 0 - p5dy.
+    If p5y is greater than bottom_wall:
+        Set p5y to bottom_wall.
+        Set p5dy to 0 - p5dy.
+    Set p5 x to p5x.
+    Set p5 y to p5y.
+
+    Set p6x to p6x + p6dx.
+    Set p6y to p6y + p6dy.
+    If p6x is less than left_wall:
+        Set p6x to left_wall.
+        Set p6dx to 0 - p6dx.
+    If p6x is greater than right_wall:
+        Set p6x to right_wall.
+        Set p6dx to 0 - p6dx.
+    If p6y is less than top_wall:
+        Set p6y to top_wall.
+        Set p6dy to 0 - p6dy.
+    If p6y is greater than bottom_wall:
+        Set p6y to bottom_wall.
+        Set p6dy to 0 - p6dy.
+    Set p6 x to p6x.
+    Set p6 y to p6y.
+
+    Turn tick_count into text as tickText.
+    Set info text to "Simulation ticks: " + tickText.

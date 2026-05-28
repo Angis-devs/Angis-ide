@@ -1,0 +1,214 @@
+# Angis examples full list
+
+Total .angis example files: 105
+
+- 3d_flappy_bird.angis
+  - starts with: App, 3D Flappy Bird. | Scene, true 3D. | Window size 800 by 600.
+- alternative_phrase_words.angis
+  - starts with: Blueprint Player with name: Ada, score: 0. | Create Player named hero with name: Grace. | Define phrase give {amount} points (to|for) {target}:
+- angis_flow.angis
+  - starts with: Say, ═══ Angis: A General-Purpose Language Tour ═══ | Say, === 1. Variables & Data Types === | Set my_int to 42.
+- anything_canvas.angis
+  - starts with: App, Anything Canvas. | Scene, canvas. | Window size 800 by 500.
+- anything_language.angis
+  - starts with: Create list named names with Ada, Grace, Linus. | Create dictionary named player with name: Ada, score: 42. | When I say shout {message:text}, it means Set taughtLoud to text uppercase with text: message and then Show taughtLoud.
+- apex_style.angis
+  - starts with: App, Apex Drop Zone. | Scene, 3D world. | Text, Choose your legend.
+- app.angis
+  - starts with: App, My First Angis App. | Text, Hello inside a real app window. | Text, This is not just output text.
+- blueprints.angis
+  - starts with: Blueprint Player with name: Ada, health: 10, score: 0. | Create Player named hero with name: Grace. | Create Player named enemy with name: Boss, health: 30.
+- booleans.angis
+  - starts with: Set, ready to true. | Set, visible to off. | Create dictionary named player with alive: yes, hidden: no.
+- bouncing_balls.angis
+  - starts with: App, Bouncing Balls Simulation. | Scene, canvas. | Window size 700 by 550.
+- capabilities_demo.angis
+  - starts with: App, Angis Full Capabilities Demo. | Scene, true 3D. | Window size 1000 by 700.
+- capability_checks.angis
+  - starts with: Check capability folder_packages as canUsePackages. | Check capability made_up_feature as canUseMadeUp. | Use capabilities has with name: math.sqrt as canUseSqrt.
+- capability_registry.angis
+  - starts with: Use capabilities list as everythingAngisCanDo. | Use capabilities language as languageFeatures. | Use capabilities runtime as runtimeFeatures.
+- code_anything.angis
+  - starts with: import python os as os | import python json as json | import python datetime as datetime
+- code_anything_helper.angis
+  - starts with: define triple with value: | return value * 3
+- code_anything_native.angis
+  - starts with: say "Yes. Angis can now cover the big building blocks." | set profile to {name: "Ada", age: 36} | put key language in profile to "Angis" as updated_profile
+- codeism_universe.angis
+  - starts with: App, Codeism Universe Simulation. | Dark background. | Window size 600 by 700.
+- contains_conditions.angis
+  - starts with: Create list named inventory with wood, stone. | Create dictionary named player with name: Ada, score: 42. | Set, phrase to hello world.
+- creator_runtime.angis
+  - starts with: App, Creator World. | Scene, 3D world. | Create player named hero at x 0 y 0 z 0.
+- creator_runtime_v2.angis
+  - starts with: App, Creator V2 World. | Scene, 3D world. | Create player named hero at x 0 y 0 z 0.
+- csv_data.angis
+  - starts with: Read CSV file assets/items.csv as rows. | Count rows in rows as rowCount. | Get column name from rows as names.
+- custom_app_words.angis
+  - starts with: use phrase pack phrases/app.angis | Make app Custom Words. | Make canvas.
+- custom_commands.angis
+  - starts with: Blueprint Player with name: Ada, score: 0. | Create Player named hero with name: Grace. | Define command give points with target and amount:
+- cyber_dungeon.angis
+  - starts with: App "Cyber Dungeon" | Scene "canvas" | Window size 800 by 600.
+- cyber_garden.angis
+  - starts with: App "Cyber Garden" | Scene "canvas" | Window size 800 by 600.
+- data_access.angis
+  - starts with: Create dictionary named player with name: Ada, score: 42. | Create list named inventory with wood, stone, iron. | Use json parse with text: [{"name":"Ada"},{"name":"Grace"}] as rows.
+- data_assignment.angis
+  - starts with: Create dictionary named player with name: Ada, score: 42. | Create list named inventory with wood, stone, iron. | Use json parse with text: [{"name":"Ada"},{"name":"Grace"}] as rows.
+- debug_trace.angis
+  - starts with: Set, x to 1. | Add, 2 to x. | Show x.
+- else_blocks.angis
+  - starts with: Set, score to 2. | If, score is at least 3: | Say, winner.
+- expressions.angis
+  - starts with: Set, x to 5. | Set, y to 3. | Set, total to x * y + 10.
+- file_actions.angis
+  - starts with: Read file examples/hello.angis as sourceText. | Write copied text to file assets/natural-output.txt as writeResult. | Get info for file assets/natural-output.txt as fileInfo.
+- file_attach.angis
+  - starts with: Attach file at /Users/fellflow/Desktop/Angis/README.md.
+- file_window.angis
+  - starts with: App, File Window. | Text, The attached file should appear below. | Set file attach to window at x 20 y 80 z 0 from file /Users/fellflow/Desktop/Angis/README.md.
+- flappy_bird.angis
+  - starts with: Bird on screen. | When clicked, bird goes up. | Bird falls down.
+- flappy_bird_3d.angis
+  - starts with: App, Flappy Bird 3D. | Scene, true 3D. | Window size 800 by 600.
+- flappy_bird_natural.angis
+  - starts with: App, Flappy Bird. | Scene, 2D screen. | Blue window.
+- floppy_bird_3d.angis
+  - starts with: App, Floppy Bird 3D. | Scene, true 3D. | Window size 800 by 600.
+- for_each.angis
+  - starts with: Create list named inventory with wood, stone, iron. | For each, item in inventory: | Show, item.
+- fortnite_style.angis
+  - starts with: App, Battle Royale Builder. | Scene, lobby. | Text, Drop from the sky.
+- forward_phrases.angis
+  - starts with: Blueprint Player with name: Ada, score: 0. | Create Player named hero with name: Grace. | Give 3 points to hero as firstScore.
+- full_system.angis
+  - starts with: include shared.angis | import pygame | import database
+- function_returns.angis
+  - starts with: Define, addPair with left and right: | Return, left + right. | Define, firstName with row:
+- functions_with_parameters.angis
+  - starts with: Define, greet with name: | Show, name. | Define, addPair with left and right:
+- general_language.angis
+  - starts with: Set, score to 0. | Repeat, 3 times: | Add, 1 to score.
+- gta_san_andreas_image.angis
+  - starts with: App, San Andreas World. | Scene, 3D world. | Text, Explore the city.
+- hello.angis
+  - starts with: say "hello" | print "Angis is running" | tell me "human-like phrases work"
+- inline_phrases.angis
+  - starts with: Define phrase start game means Say, started. | Define phrase note {message:text} means Show, message. | Start game.
+- json_actions.angis
+  - starts with: Parse JSON {"score": 42, "name": "Ada"} as data. | Turn data into JSON as packed. | Show score of data.
+- key_phrase_slots.angis
+  - starts with: Blueprint Player with name: Ada, score: 0, health: 10. | Create Player named hero with name: Grace. | Define phrase set {field:key} of {target:name} to {value}:
+- length_expressions.angis
+  - starts with: Set inventory to [wood, stone, iron]. | Set player to {name: Ada, score: 42}. | Set title to Angis.
+- list_transforms.angis
+  - starts with: Set scores to [3, 1, 2, 1]. | Sort scores as sortedScores. | Reverse scores as reversedScores.
+- literal_data.angis
+  - starts with: Set inventory to [wood, stone, 3]. | Set player to {name: Ada, score: 42, items: [key, map]}. | Show item 0 of inventory.
+- literal_phrases.angis
+  - starts with: Define phrase start game: | Say, started. | Define phrase reset everything:
+- loading_screen.angis
+  - starts with: App, Loading Demo. | Loding screen. | Scene, 3D world.
+- logical_conditions.angis
+  - starts with: Set, score to 4. | Set, lives to 2. | If, score is at least 3 and lives is greater than 0:
+- map_transforms.angis
+  - starts with: Set player to {name: Ada, score: 42}. | Set bonus to {level: 3}. | Get score from player as playerScore.
+- math.angis
+  - starts with: add 5 and 3 | what is 10 plus 4 | calculate 7 * 6
+- math_actions.angis
+  - starts with: Round 3.7 as rounded. | Floor 3.7 as floored. | Ceil 3.2 as ceiled.
+- minecraft_style.angis
+  - starts with: App, Minecraft 2D. | Scene, canvas. | Window size 800 by 600.
+- minicraft.angis
+  - starts with: App, Minicraft. | Scene, true 3D. | Window size 900 by 650.
+- modules/math_tools.angis
+  - starts with: Define greet with name: | Return, name. | Define double with value:
+- modules_app.angis
+  - starts with: use module modules/math_tools.angis as tools | Call, tools.greet with Ada as message. | Call, tools.double with 6 as doubled.
+- multistep_inline_phrases.angis
+  - starts with: Blueprint Player with name: Ada, score: 0. | Create Player named hero with name: Grace. | Define phrase boost {target:name} means Set, target.score to target.score + 1 and then Show, target.score.
+- namespaced_phrases.angis
+  - starts with: Define phrase app.start means Say, started. | Define phrase app.stop means Say, stopped. | App start.
+- natural_control_flow.angis
+  - starts with: Create list named inventory with wood, stone. | Set, score to 0. | Do this 2 times:
+- natural_data_access.angis
+  - starts with: Create dictionary named player with name: Ada, score: 42. | Create list named inventory with wood, stone. | Show score of player.
+- nested_key_phrases.angis
+  - starts with: Use json parse with text: {"name":"Grace","stats":{"score":0,"health":10}} as hero. | Define phrase set {field:key} of {target:name} to {value}: | Set, target[field] to value.
+- object_methods.angis
+  - starts with: Create dictionary named player with name: Ada, health: 10. | Define method heal for player with amount: | Set, self.health to self.health + amount.
+- optional_phrase_words.angis
+  - starts with: Blueprint Player with name: Ada, score: 0. | Create Player named hero with name: Grace. | Define phrase give {amount} points [to] {target}:
+- package_app.angis
+  - starts with: use package packages/tools as kit | Call, kit.math.numbers.double with 6 as doubled. | Call, kit.math.numbers.triple with 5 as tripled.
+- packages/tools/math/numbers.angis
+  - starts with: Define double with value: | Return, value * 2. | Define triple with value:
+- packages/tools/text/names.angis
+  - starts with: Define echo with value: | Return, value.
+- path_actions.angis
+  - starts with: Get file name from assets/items.csv as pathName. | Get file extension from assets/items.csv as pathExtension. | Get folder from assets/items.csv as pathFolder.
+- path_phrase_slots.angis
+  - starts with: Define phrase attach {file:path} means Attach file at file. | Attach /Users/fellflow/Desktop/Angis/README.md.
+- phrase_library.angis
+  - starts with: Define phrase note {message:text} means Show, message. | Define phrase start game means Say, started. | Define phrase set {field:key} of {target:name} to {value}:
+- phrase_templates.angis
+  - starts with: Blueprint Player with name: Ada, score: 0. | Create Player named hero with name: Grace. | Define phrase give {amount} points to {target}:
+- phrase_tree/actions/game.angis
+  - starts with: Define phrase start game means Say, started.
+- phrase_tree/ui/text.angis
+  - starts with: Define phrase note {message:text} means Show, message.
+- phrases/app.angis
+  - starts with: Define phrase make app {title:text} means App, title. | Define phrase make canvas means Scene, canvas. | Define phrase put text {message:text} means Text, message.
+- phrases/game.angis
+  - starts with: use phrase pack text.angis | Define phrase start game means Say, started.
+- phrases/text.angis
+  - starts with: Define phrase note {message:text} means Show, message.
+- place_file_phrase.angis
+  - starts with: App, File Window. | Define phrase place {file:path} at {x:number} {y:number} {z:number} means Attach file file to window at x x y y z z. | Place /Users/fellflow/Desktop/Angis/README.md at 20 80 0.
+- point_phrase_slots.angis
+  - starts with: App, File Window. | Define phrase place {file:path} at {location:point} means Attach file file to window at x location[0] y location[1] z location[2]. | Place /Users/fellflow/Desktop/Angis/README.md at (20, 80, 0).
+- positive_vibes.angis
+  - starts with: store "🌟 Welcome to Positive Vibes 🌟" as title | show title | show ""
+- punctuation_phrases.angis
+  - starts with: Blueprint Player with name: Ada, score: 0. | Create Player named hero with name: Grace. | Define phrase give {amount:number} points to {target:name}:
+- sentence_style.angis
+  - starts with: Say, hello from the Angis IDE. | Print, output phrases work. | Display, strings work.
+- shared.angis
+  - starts with: Create dictionary named sharedData with level: 1, name: Demo.
+- solar_system.angis
+  - starts with: App, Solar System. | Scene, canvas. | Window size 800 by 600.
+- standard_library.angis
+  - starts with: import pygame | import database | import network
+- stdlib_actions.angis
+  - starts with: Use math sqrt with value: 81 as root. | Use math power with base: 2, exponent: 8 as power. | Use random integer with min: 1, max: 6 as roll.
+- text_transform.angis
+  - starts with: Set title to hello brave world. | Split title by space as words. | Join words with dash as slug.
+- time_actions.angis
+  - starts with: Get current time as nowText. | Get timestamp as secondsNow. | Get todays date as todayText.
+- true_3d.angis
+  - starts with: import std | App, True 3D Demo. | Scene, true 3D.
+- typed_phrase_slots.angis
+  - starts with: Blueprint Player with name: Ada, score: 0. | Create Player named hero with name: Grace. | Define phrase give {amount:number} points to {target:name}:
+- ui_media.angis
+  - starts with: import ui | import video | import sound
+- universal_demo.angis
+  - starts with: App "Data Center" | Scene "canvas" | Window size 800 by 600.
+- use_phrase_library.angis
+  - starts with: use phrase library phrase_library.angis | Blueprint Player with name: Ada, score: 0. | Create Player named hero with name: Grace.
+- use_phrase_pack.angis
+  - starts with: use phrase pack phrases/game.angis | Start game. | Note nested phrase pack works.
+- use_phrase_pack_folder.angis
+  - starts with: use phrase pack phrases | Start game. | Note folder phrase pack works.
+- use_recursive_phrase_pack.angis
+  - starts with: use phrase pack phrase_tree | Start game. | Note recursive phrase pack works.
+- variable_mutation.angis
+  - starts with: Set score to 10. | Take 2 from score. | Decrease score by 1.
+- variables.angis
+  - starts with: set x to 5 | make y equal 8 | store "Ada" as name
+- website_demo.angis
+  - starts with: App, My Angis Website. | Scene, canvas. | Window size 900 by 650.
+- while_loop.angis
+  - starts with: Set, score to 0. | While, score is less than 5: | Add, 1 to score.
+- word_expressions.angis
+  - starts with: Set, x to 5. | Set, y to 7. | Set total to x plus y times 2.

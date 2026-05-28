@@ -998,6 +998,7 @@ class Interpreter:
             app = self._require_app()
             if app.objects is None:
                 app.objects = []
+            image_info = self._file_info(instruction.path, x=instruction.x, y=instruction.y, z=instruction.z) if instruction.kind == "image" else None
             app.objects.append(
                 CreatorObject(
                     kind=instruction.kind,
@@ -1006,13 +1007,13 @@ class Interpreter:
                     y=instruction.y,
                     z=instruction.z,
                     text=instruction.text,
-                    path=instruction.path,
+                    path=image_info.path if image_info is not None else instruction.path,
                     properties=dict(instruction.properties or {}),
                 )
             )
-            if instruction.kind == "image":
+            if image_info is not None:
                 app.files = app.files or []
-                app.files.append(self._file_info(instruction.path, x=instruction.x, y=instruction.y, z=instruction.z))
+                app.files.append(image_info)
             if instruction.kind == "button":
                 app.buttons.append(instruction.text)
             return app

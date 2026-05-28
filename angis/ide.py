@@ -617,11 +617,12 @@ class AngisIDE(tk.Tk):
         def finish() -> None:
             if state["finished"]:
                 return
+            if player is not None and player.poll() is None:
+                loading.after(100, finish)
+                return
             state["finished"] = True
             state["pct"] = 100
             bar_canvas.coords(bar_fill, 0, 0, BAR_W, BAR_H)
-            if player is not None and player.poll() is None:
-                player.terminate()
             if loading.winfo_exists():
                 loading.destroy()
             self._open_angis_app_now(app)
@@ -1229,10 +1230,11 @@ def _show_startup_splash(master: tk.Tk) -> None:
     def close() -> None:
         if state["done"]:
             return
+        if player is not None and player.poll() is None:
+            splash.after(100, close)
+            return
         state["done"] = True
         canvas.coords(bf, bpx, bpy, bpx + bpw, bpy + bph)
-        if player is not None and player.poll() is None:
-            player.terminate()
         if splash.winfo_exists():
             splash.destroy()
 

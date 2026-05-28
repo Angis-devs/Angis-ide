@@ -992,6 +992,72 @@ class InterpreterTests(unittest.TestCase):
 
         self.assertEqual(output, ["3", "10"])
 
+    def test_teach_angis_block_phrases_keep_user_language_flow(self):
+        output = run_source(
+            """
+            Blueprint Player with name: Ada, score: 0.
+            Create Player named hero with name: Grace.
+
+            Teach Angis bless {target:name} with {amount:number} bars to do:
+                Set, target.score to target.score + amount.
+                Return, target.score.
+
+            Bless hero with 4 bars as firstBlessing.
+            Bless hero with 6 bars.
+            Show, firstBlessing.
+            Show, hero.score.
+            """
+        )
+
+        self.assertEqual(output, ["4", "10"])
+
+    def test_custom_phrase_stdlib_actions_resolve_slot_variables(self):
+        with TemporaryDirectory() as temp_dir:
+            note = Path(temp_dir) / "note.txt"
+            output = run_source(
+                f"""
+                Teach Angis stash {{content:text}} inside {{path:path}} to do:
+                    Write text content to file path as wrote.
+                    Return, wrote.
+
+                Teach Angis pull from {{path:path}} to do:
+                    Read file path as text.
+                    Return, text.
+
+                Stash hello custom flow inside {note} as writeResult.
+                Pull from {note} as readResult.
+                Show, writeResult.
+                Show, readResult.
+                """
+            )
+
+        self.assertEqual(output, ["Wrote file note.txt", "hello custom flow"])
+
+    def test_inline_custom_phrases_accept_do_and_run_wording(self):
+        output = run_source(
+            """
+            Teach Angis flex {message:text} to do Show, message.
+            When I say double flex {message:text}, it runs Show, message then Show, message.
+
+            Flex stay native.
+            Double flex my language flow.
+            """
+        )
+
+        self.assertEqual(output, ["stay native", "my language flow", "my language flow"])
+
+    def test_custom_phrase_block_when_i_say_can_use_do_suffix(self):
+        output = run_source(
+            """
+            When I say drop {line:text}, do:
+                Show, line.
+
+            Drop keep Angis custom.
+            """
+        )
+
+        self.assertEqual(output, ["keep Angis custom"])
+
     def test_custom_phrase_templates_support_optional_words(self):
         output = run_source(
             """
@@ -1273,6 +1339,28 @@ class InterpreterTests(unittest.TestCase):
         self.assertEqual(len(opened[0].objects), 3)
         self.assertIn("key:w", opened[0].events)
         self.assertIn("button:start", opened[0].events)
+
+    def test_creator_image_path_resolves_against_base_path(self):
+        with TemporaryDirectory() as temp_dir:
+            base = Path(temp_dir)
+            image = base / "duck.png"
+            image.write_bytes(b"not real png")
+            opened: list[AppSpec] = []
+            interpreter = Interpreter(app_runner=opened.append, base_path=base)
+            output = interpreter.run(
+                parse(
+                    """
+                    App, Picture Test.
+                    Scene, canvas.
+                    Create image named duck at x 10 y 20 z 0 from file duck.png.
+                    """
+                )
+            )
+
+            self.assertEqual(output, [])
+            duck = opened[0].objects[0]
+            self.assertEqual(duck.path, str(image.resolve()))
+            self.assertEqual(opened[0].files[0].path, str(image.resolve()))
 
     def test_creator_v2_state_lists_properties_and_events(self):
         with TemporaryDirectory() as temp_dir:

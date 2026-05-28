@@ -19,6 +19,28 @@ fi
 mkdir -p "$MACOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
+LOGO_PNG="${PROJECT_DIR}/logo/logo.png"
+ICONSET_DIR="${RESOURCES_DIR}/Angis.iconset"
+ICON_FILE="${RESOURCES_DIR}/Angis.icns"
+if [ -f "$LOGO_PNG" ]; then
+  rm -rf "$ICONSET_DIR"
+  mkdir -p "$ICONSET_DIR"
+  sips -z 16 16 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_16x16.png" >/dev/null
+  sips -z 32 32 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_16x16@2x.png" >/dev/null
+  sips -z 32 32 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_32x32.png" >/dev/null
+  sips -z 64 64 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_32x32@2x.png" >/dev/null
+  sips -z 128 128 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_128x128.png" >/dev/null
+  sips -z 256 256 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_128x128@2x.png" >/dev/null
+  sips -z 256 256 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_256x256.png" >/dev/null
+  sips -z 512 512 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_256x256@2x.png" >/dev/null
+  sips -z 512 512 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_512x512.png" >/dev/null
+  sips -z 1024 1024 "$LOGO_PNG" --out "${ICONSET_DIR}/icon_512x512@2x.png" >/dev/null
+  iconutil -c icns "$ICONSET_DIR" -o "$ICON_FILE"
+  rm -rf "$ICONSET_DIR"
+else
+  echo "Warning: logo image not found: $LOGO_PNG"
+fi
+
 cat > "${CONTENTS_DIR}/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
@@ -37,6 +59,8 @@ cat > "${CONTENTS_DIR}/Info.plist" <<'PLIST'
   <string>1.0.0</string>
   <key>CFBundleExecutable</key>
   <string>AngisLauncher</string>
+  <key>CFBundleIconFile</key>
+  <string>Angis</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>LSMinimumSystemVersion</key>
