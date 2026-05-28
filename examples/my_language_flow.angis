@@ -105,6 +105,18 @@ Teach Angis what Angis cant do yet to do:
     Show, "The honest limit is that Angis can be taught almost any wording, but not every capability is native yet."
     Show, "For deep system work, production web stacks, advanced engines, or unknown APIs, it still needs interpreter work or Python library bridges."
     Show, "Deep systems work, production web stacks, advanced engines, and unknown APIs still need interpreter work or Python/library bridges."
+    Show, "It does not have a mature package manager, dependency resolver, lockfile workflow, or public package registry yet."
+    Show, "It does not have full production web framework features like routing, SSR, hydration, bundling, auth, migrations, or deployment adapters."
+    Show, "It does not have native mobile app builds for iOS or Android."
+    Show, "It does not have mature desktop app packaging for every operating system."
+    Show, "It does not have advanced game engine systems like physics pipelines, animation graphs, asset importers, shaders, replication, or editor tooling."
+    Show, "It does not have a full static type checker, language server, autocomplete engine, formatter, or refactoring engine."
+    Show, "It does not have a hardened permission sandbox, capability isolation, code signing flow, or security audit system."
+    Show, "It does not have built-in cloud infrastructure tools for containers, Kubernetes, serverless, CI/CD, secrets, or observability."
+    Show, "It does not have native drivers, kernels, embedded firmware support, or real-time systems support."
+    Show, "It does not have complete compatibility with every Python library unless that library is installed and bridged."
+    Show, "It does not have guaranteed production-grade performance for large programs yet."
+    Show, "It does not have complete docs, tutorials, or examples for every feature."
 
 Bless me with 16 bars as firstBlessing.
 Bless me with 8 bars.
