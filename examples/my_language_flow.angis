@@ -102,6 +102,8 @@ Teach Angis what Angis cant do yet to do:
     Show, "Security and permissions are basic, not a hardened sandbox."
     Show, "Errors and IDE tooling are not as mature as mainstream languages."
     Show, "Some phrase-slot edge cases still need fixes."
+    Show, "The honest limit is that Angis can be taught almost any wording, but not every capability is native yet."
+    Show, "For deep system work, production web stacks, advanced engines, or unknown APIs, it still needs interpreter work or Python library bridges."
 
 Bless me with 16 bars as firstBlessing.
 Bless me with 8 bars.
