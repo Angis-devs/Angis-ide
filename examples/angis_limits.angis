@@ -21,3 +21,4 @@ Say, Refactoring, autocomplete, type checking, debugging, and IDE tooling are no
 Say, Some phrase-slot edge cases still need fixes as they are found.
 Say, The honest limit is that Angis can be taught almost any wording, but not every capability is native yet.
 Say, For deep system work, production web stacks, advanced engines, or unknown APIs, it still needs interpreter work or Python library bridges.
+Say, Deep systems work, production web stacks, advanced engines, and unknown APIs still need interpreter work or Python/library bridges.
