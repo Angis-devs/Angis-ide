@@ -71,7 +71,23 @@ cat > "${CONTENTS_DIR}/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-PYTHON_BIN="$(python3 -c 'import sys; print(sys.executable)')"
+if command -v python3.14 >/dev/null 2>&1; then
+  PYTHON_BIN="$(python3.14 -c 'import sys; print(sys.executable)')"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="$(python3 -c 'import sys; print(sys.executable)')"
+else
+  echo "Error: Python 3.14+ is required. Install the python.org macOS universal2 Python 3.14 installer."
+  exit 1
+fi
+
+"$PYTHON_BIN" - <<'PY'
+import platform
+import sys
+
+if sys.version_info < (3, 14):
+    raise SystemExit("Error: Python 3.14+ is required. Install the python.org macOS universal2 Python 3.14 installer.")
+print(f"Using Python {platform.python_version()} at {sys.executable}")
+PY
 
 cat > "${MACOS_DIR}/AngisLauncher" <<LAUNCHER
 #!/bin/bash
@@ -84,7 +100,7 @@ cd "\$PROJECT_DIR" || exit 1
 if [ -x "\$PYTHON" ]; then
   "\$PYTHON" -m angis ide "\$@"
 else
-  osascript -e 'display dialog "Python 3.10+ is required to run Angis." buttons {"OK"} default button "OK"'
+  osascript -e 'display dialog "Python 3.14+ is required to run Angis. Install the python.org macOS universal2 Python 3.14 installer." buttons {"OK"} default button "OK"'
   exit 1
 fi
 LAUNCHER

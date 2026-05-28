@@ -1,25 +1,37 @@
 # Angis
 
-Angis is a local Python 3.11+ prototype for a programming language that maps human-like phrases into clear programming actions. It does not call cloud AI APIs. Phrase handling is implemented with an expandable intent parser.
+Angis is a local Python 3.14+ prototype for a programming language that maps human-like phrases into clear programming actions. It does not call cloud AI APIs. Phrase handling is implemented with an expandable intent parser.
+
+## Python Version
+
+Angis targets Python 3.14.5 or newer. On macOS, use the official python.org `macOS 64-bit universal2 installer` for Python 3.14 so the same install runs natively on Apple Silicon and Intel Macs.
+
+Do not modify Apple's `/usr/bin/python3`. Install Python 3.14 separately, then run Angis with:
+
+```bash
+python3.14 -m angis run examples/hello.angis
+```
+
+The bundled `launch_angis.sh` and `install_angis_mac_app.sh` prefer `python3.14` and reject older Python runtimes.
 
 ## Run
 
 ```bash
-python -m angis run examples/hello.angis
-python -m angis run examples/variables.angis
-python -m angis run examples/math.angis
+python3.14 -m angis run examples/hello.angis
+python3.14 -m angis run examples/variables.angis
+python3.14 -m angis run examples/math.angis
 ```
 
 Print the intermediate representation:
 
 ```bash
-python -m angis ir examples/math.angis
+python3.14 -m angis ir examples/math.angis
 ```
 
 Run an app with the optional real pygame backend:
 
 ```bash
-python -m angis pygame examples/full_system.angis
+python3.14 -m angis pygame examples/full_system.angis
 ```
 
 This requires `pygame` to be installed in the same Python environment. If it is missing, Angis gives a safe error instead of falling back silently.
@@ -27,14 +39,14 @@ This requires `pygame` to be installed in the same Python environment. If it is 
 Step through a program in the CLI debugger:
 
 ```bash
-python -m angis debug examples/true_3d.angis
-python -m angis debug examples/true_3d.angis --no-wait
+python3.14 -m angis debug examples/true_3d.angis
+python3.14 -m angis debug examples/true_3d.angis --no-wait
 ```
 
 Launch the built-in IDE:
 
 ```bash
-python -m angis.ide
+python3.14 -m angis.ide
 ```
 
 The IDE shows the startup picture from `angis loading/loading screen.png`, plays `angis loading/loading-adieo.mp3`, then opens the editor.
